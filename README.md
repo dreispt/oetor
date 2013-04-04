@@ -5,10 +5,10 @@ Dominate the entire ERP tri-state area by easilly installing and creating an
 army of OpenERP server instances in your server. The self-descruct button is 
 intended only for test databases. Beware of Agent P.
 
-For an easy and  quick start run: ./oetor auto-install 
+For an easy and  quick start run: `./oetor auto-install`
 This will make an automatic full installation, including the creation of an
-initial "demov7" OpenERP instance. It's equivalent to running the sequence of
-commands: get-dependencies; init; get-source; create demov7.
+initial `demov7` OpenERP instance. It's equivalent to running the sequence of
+commands: `get-dependencies`; `init`; `get-source`; `create demov7`.
 
 Commands Available:
 
@@ -29,8 +29,8 @@ Commands Available:
                       provided, they will be included in the generated 'start.sh' 
                       script.
                    
-An OpenERP instance is a directory inside oetor's home directory, and can be 
-started using the included 'start' script. 
+An OpenERP instance is a directory inside `oetor`'s home directory, and can be 
+started using the included `start` script. 
 
 The directory contains:
 
