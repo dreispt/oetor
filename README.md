@@ -2,7 +2,7 @@ OpenERP-inator
 ==============
 
 Dominate the entire ERP tri-state area by easilly installing and creating an 
-army of OpenERP server instances in your server. The self-descruct button is 
+army of OpenERP server instances in your server. The self-destruct button is 
 intended only for test databases. Beware of Agent P.
 
 For an easy and  quick start run: `./oetor auto-install`
@@ -45,3 +45,12 @@ The directory contains:
                       For example: ./start.sh -u all --stop-after-init    
     openerp-server.conf
                       Configuration file used by the instance.
+
+Wishlist:
+  * command to run tests on throw-away databases
+  * command to list running instances (`start`already does a gob job when you `ps aux|grep openerp`)
+  * command to list databases
+  * commands to start in background, see instances running, and stop instances
+  * command to set instance to autostart on boo
+  * provide better conf file template (?)
+  * command to remove an instance (?)
