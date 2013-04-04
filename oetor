@@ -24,7 +24,7 @@ endColor='\e[0m'
 if [ -z "$1" ]; then # || "$1" = "help"
   echo "== OpenERP-inator == 
 Dominate the entire ERP tri-state area by easilly installing and creating an 
-army of OpenERP server instances in your server. The self-descruct button is 
+army of OpenERP server instances in your server. The self-destruct button is 
 intended only for test databases. Beware of Agent P.
 
 For an easy and  quick start run: ./oetor auto-install 
