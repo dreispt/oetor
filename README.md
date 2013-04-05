@@ -27,11 +27,11 @@ Quickstart full installation
 
 For an easy and quick start in run:
 
-    oetor/oetor auto-install 
+    /opt/openerp/oetor auto-install 
 
 The `auto-install` command will install PostgreSQL and other system dependencies, setup the `/opt/openerp/` home, download v7 sources and configure an initial `demov7` instance. It can be started with:
 
-    /opt/openerp/demov7/start                       # start the default OpenERP server
+    /opt/openerp/demov7/start
 
 
 Step-by-step installation
@@ -50,11 +50,12 @@ More commands
 
 By default, `oetor` will install itself in `/opt/openerp`. Try:
 
-    ./oetor                     # Display included documentation
-    ./oetor update-source       # Update sources from Launchpad
-    ./oetor version-source      # Display source version revision numbers
-    ./oetor create testv7 8070  # Create testv7 instance on port 8070
-    testv7/start -i crm --debug # Start testv7 in debug mode and install crm module
+    cd /opt/openerp                 # Go to home directory
+    ./oetor                         # Display included documentation
+    ./oetor update-source           # Update sources from Launchpad
+    ./oetor version-source          # Display source version revision numbers
+    ./oetor create testv7 8070      # Create testv7 instance on port 8070
+    testv7/start -i crm --debug     # Start testv7 in debug mode and install crm module
     
 
 Anatomy of a server instance
