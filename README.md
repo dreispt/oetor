@@ -1,56 +1,84 @@
 OpenERP-inator
 ==============
 
-Dominate the entire ERP tri-state area by easilly installing and creating an 
-army of OpenERP server instances in your server. The self-destruct button is 
-intended only for test databases. Beware of Agent P.
+Dominate the entire ERP tri-state area by easilly installing and creating an army of OpenERP server instances in your server. The self-destruct button is intended only for test databases. And beware of failed tests and Agent P!
 
-For an easy and  quick start run: `./oetor auto-install`
-This will make an automatic full installation, including the creation of an
-initial `demov7` OpenERP instance. It's equivalent to running the sequence of
-commands: `get-dependencies`; `init`; `get-source`; `create demov7`.
+Main features:
+* One-line no-brains full installation command, to get you an up an running instance in a blink.
+* One-line Launchpad sources download, update and version revision numbers check.
+* One-line creation of new server instances.
+* One-line testing of a server instance. [TODO] 
+* Easily add addons projects - just add the directory with it's sources inside the instance's `addons-repo` directory and restart the server.
+* Easily list running instances and respective listening ports. [IN PROGRESS]
 
-Commands Available:
 
-    version           Display script's version info.
-    get-dependencies  Install system dependencies and also tries to install the 
-                      PostgreSQL database. Requires sudoer privilege.
-    init              Creates db role for current user and the directory 
-                      structure. Requires sudoer privilege.
-    get-latest        Retrieves source code from nightly builds repository, into
-                      the 'shared' directory.
-    get-source        Retrieves source code from Lanchpad repositories, into 
-                      the 'shared' directory.
-    update-source     Updates the sources with later commits.
-    version-source    Displays the sources revision numbers.
-    create NAME [PORT] [FIXED_OPTIONS]
-                      Create an OpenERP 7 database and instance named "NAME" and 
-                      listening at port "PORT". If additional "FIXED_OPTIONS" are 
-                      provided, they will be included in the generated 'start.sh' 
-                      script.
+Getting the code
+----------------
+
+Install git and get the code:
+
+    sudo apt-get install git                        # install git in a Debian/Ubuntu OS
+    git clone https://github.com/dreispt/oetor.git  # get the code
+    oetor/oetor init                                # install code in /opt/openerp
+
+
+Quickstart full installation
+---------------------------
+
+For an easy and quick start in run:
+
+    oetor/oetor auto-install 
+
+The `auto-install` command will install PostgreSQL and other system dependencies, setup the `/opt/openerp/` home, download v7 sources and configure an initial `demov7` instance. It can be started with:
+
+    /opt/openerp/demov7/start                       # start the default OpenERP server
+
+
+Step-by-step installation
+-------------------------
+
+Instead of using the auto-install, the same result can be achieved using the following commands:
+  
+    cd /opt/openerp                 # Go to home directory
+    ./oetor get-dependencies        # Install system dependencies
+    ./oetor get-source              # Download (v7) sources from Launchpad
+    ./oetor create demov7           # Create instance demov7 (on port 8069)
+
+
+More commands
+-------------
+
+By default, `oetor` will install itself in `/opt/openerp`. Try:
+
+    ./oetor                     # Display included documentation
+    ./oetor update-source       # Update sources from Launchpad
+    ./oetor version-source      # Display source version revision numbers
+    ./oetor create testv7 8070  # Create testv7 instance on port 8070
+    testv7/start -i crm --debug # Start testv7 in debug mode and install crm module
+    
+
+Anatomy of a server instance
+----------------------------
                    
-An OpenERP instance is a directory inside `oetor`'s home directory, and can be 
-started using the included `start` script. 
+An OpenERP instance is a directory inside `oetor`'s home directory, and can be started using the included `start` script. Example:
+
+    ls /opt/openerp/demov7
 
 The directory contains:
 
-    server/           The server source code. By default it's a symlink to the 
-                      sources in the 'shared' directory.
-    addons-repo/      Contains the addons directories to use. These directories are
-                      automatically added to the addons_path upon server start.
-                      By default includes symlinks to the official addons sources 
-                      in the 'shared' directory.
-    start             Script to start the instance. If called with additional 
-                      parameters, these will be passed to the openerp-server.
-                      For example: ./start.sh -u all --stop-after-init    
-    openerp-server.conf
-                      Configuration file used by the instance.
+* `server/`: The server source code. By default it's a symlink to the sources in the 'shared' directory.
+* `addons-repo/`: Contains the addons directories to use. These directories are automatically added to the `addons_path` upon server start. By default includes symlinks to the official addons sources in the `shared` directory.
+* `start`: Script to start the instance. If called with additional parameters, these will be passed to the openerp-server.
+* `openerp-server.conf`: Configuration file used by the instance.
 
-Wishlist:
-  * command to run tests on throw-away databases
-  * command to list running instances (`start`already does a gob job when you `ps aux|grep openerp`)
-  * command to list databases
-  * commands to start in background, see instances running, and stop instances
-  * command to set instance to autostart on boo
-  * provide better conf file template (?)
-  * command to remove an instance (?)
+
+To-do list
+----------
+
+* command to run tests on throw-away databases
+* command to list running instances (`start`already does a gob job when you `ps aux|grep openerp`)
+* command to list databases
+* commands to start in background, see instances running, and stop instances
+* command to set instance to autostart on boot
+* provide better configuration file template (?)
+* command to remove an instance (?)
