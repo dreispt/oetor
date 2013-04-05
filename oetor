@@ -3,15 +3,6 @@
 # OpenERP-inator, a tool to manage OpenERP server instances
 # Author: Daniel Reis, 2013
 #
-# TODO ideas: 
-# * command to run tests on throw-away databases
-# * commands to start in background, see instances running, and stop instances
-# * set instance to autostart on boot command
-# * provide better conf file template
-# * remove instance command
-# * command to list databases
-# * command to list running instances
-#
 ################################################################################
 
 #fixed parameters:
