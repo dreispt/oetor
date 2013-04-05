@@ -59,7 +59,7 @@ The directory contains:
   openerp-server.conf
                     Configuration file used by the instance.
 "    
-	exit 0
+    exit 0
 fi
 
 #OPTION=$1
@@ -71,161 +71,163 @@ version)
     ;;
     
 get-dependencies)
-	#--------------------------------------------------
-	# Install Postgres and System dependencies
-	#--------------------------------------------------
-	echo -e "\n---- Installing PostgreSQL ----"
-	sudo apt-get install postgresql
+    #--------------------------------------------------
+    # Install Postgres and System dependencies
+    #--------------------------------------------------
+    echo -e "\n---- Installing PostgreSQL ----"
+    sudo apt-get install postgresql
 
-	echo -e "\n---- Installing system packages ----"
-	yes | sudo apt-get install bzr bzrtools python-pip
+    echo -e "\n---- Installing system packages ----"
+    yes | sudo apt-get install bzr bzrtools python-pip
 
-	echo -e "\n---- Installing python packages ----"
-	yes | sudo apt-get install python-dateutil python-docutils python-feedparser \
-	python-gdata python-jinja2 python-ldap python-libxslt1 python-lxml python-mako \
-	python-mock python-openid python-psycopg2 python-psutil python-pybabel \
-	python-pychart python-pydot python-pyparsing python-reportlab python-simplejson \
-	python-tz python-unittest2 python-vatnumber python-vobject python-webdav \
-	python-werkzeug python-xlwt python-yaml python-zsi python-gdata
+    echo -e "\n---- Installing python packages ----"
+    yes | sudo apt-get install python-dateutil python-docutils python-feedparser \
+    python-gdata python-jinja2 python-ldap python-libxslt1 python-lxml python-mako \
+    python-mock python-openid python-psycopg2 python-psutil python-pybabel \
+    python-pychart python-pydot python-pyparsing python-reportlab python-simplejson \
+    python-tz python-unittest2 python-vatnumber python-vobject python-webdav \
+    python-werkzeug python-xlwt python-yaml python-zsi python-gdata
 
-	#echo -e "\n---- Install python libraries ----"
-	#sudo pip install gdata
+    #echo -e "\n---- Install python libraries ----"
+    #sudo pip install gdata
     ;;
     
 init)
-	#--------------------------------------------------
-	# Setup directories
-	#   If reexecuted, updates the 'oetor' script with the executed version
-	#--------------------------------------------------
-	#Make this script available anywhere:
-	#sudo ln -sf /usr/local/bin $0
-	#echo -e "\n---- Create system user ----"
-	#sudo adduser --system --quiet --shell=/bin/bash --home=$OEADMIN_HOME --gecos 'OpenERP' --group $OEADMIN_USER
+    #--------------------------------------------------
+    # Setup directories
+    #   If reexecuted, updates the 'oetor' script with the executed version
+    #--------------------------------------------------
+    #Make this script available anywhere:
+    #sudo ln -sf /usr/local/bin $0
+    #echo -e "\n---- Create system user ----"
+    #sudo adduser --system --quiet --shell=/bin/bash --home=$OEADMIN_HOME --gecos 'OpenERP' --group $OEADMIN_USER
     if [ "$2" ] ; then
         OEADMIN_HOME="$2"
     else
         OEADMIN_HOME="/opt/openerp"
     fi
     
-	if [ ! -d /var/log/openerp ] ; then
-	    echo -e "* Creating log directory /var/log/openerp ..."
-	    sudo mkdir /var/log/openerp
-	    sudo chown $OEADMIN_USER:$OEADMIN_USER /var/log/$OEADMIN_USER
-	fi
-	if [ ! -d $OEADMIN_HOME ] ; then
-	    echo -e "* Creating home directory $OEADMIN_HOME ..."
-	    sudo mkdir -p $OEADMIN_HOME
-	    sudo chown $OEADMIN_USER:$OEADMIN_USER $OEADMIN_HOME
-	fi
-	if [ ! -d $OEADMIN_HOME/shared ] ; then
-	    echo -e "* Creating shared sources directory $OEADMIN_HOME/shared ..."
-	    mkdir $OEADMIN_HOME/shared
-	fi
-	
-    if [ -z `psql postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='$OEADMIN_USER'"` ] ; then
-        echo -e "* Creating database role $OEADMIN_USER ..."
-        sudo su -c "createuser --createdb --no-createrole --no-superuser $OEADMIN_USER" postgres
+    if [ ! -d /var/log/openerp ] ; then
+        echo -e "* Creating log directory /var/log/openerp ..."
+        sudo mkdir /var/log/openerp
+        sudo chown $OEADMIN_USER:$OEADMIN_USER /var/log/$OEADMIN_USER
+    fi
+    if [ ! -d $OEADMIN_HOME ] ; then
+        echo -e "* Creating home directory $OEADMIN_HOME ..."
+        DIR="$( cd "$( dirname "$0" )" && pwd )"
+        sudo mv $DIR $OEADMIN_HOME
+        #sudo chown $OEADMIN_USER:$OEADMIN_USER $OEADMIN_HOME
+        #cd $OEADMIN_HOME
+    fi
+    if [ ! -d $OEADMIN_HOME/shared ] ; then
+        echo -e "* Creating shared sources directory $OEADMIN_HOME/shared ..."
+        mkdir $OEADMIN_HOME/shared
     fi
     
-	echo -e "* Updating $OEADMIN_HOME/oetor script ..."
-    cp $0 $OEADMIN_HOME
+    #echo -e "* Updating $OEADMIN_HOME/oetor script ..."
+    #cp $0 $OEADMIN_HOME
     ;;
     
 get-latest)
-	#--------------------------------------------------
-	# Download latest nightly build
-	#
-	#   Installed at $OEADMIN_HOME/shared/latest/7.0
+    #--------------------------------------------------
+    # Download latest nightly build
+    #
+    #   Installed at $OEADMIN_HOME/shared/latest/7.0
     #   If re-downloading, sources are replaced but referring symlinks are kept
-	#--------------------------------------------------
+    #--------------------------------------------------
     #use bzr export destination-dir lp:branch-name  ?
-	echo -e "${color}* Downloading version 7 nightly build ...${endColor}"
-	mkdir -p $OEADMIN_HOME/shared
-	wget --no-clobber http://nightly.openerp.com/7.0/nightly/src/openerp-7.0-latest.tar.gz -P $OEADMIN_HOME/shared
+    echo -e "${color}* Downloading version 7 nightly build ...${endColor}"
+    mkdir -p $OEADMIN_HOME/shared
+    wget --no-clobber http://nightly.openerp.com/7.0/nightly/src/openerp-7.0-latest.tar.gz -P $OEADMIN_HOME/shared
 
-	echo -e "${color}* Uncompressing files ...${endColor}"
-	rm -rf $OEADMIN_HOME/shared/.tmp
-	mkdir -p $OEADMIN_HOME/shared/.tmp
-	tar xf $OEADMIN_HOME/shared/openerp-7.0-latest.tar.gz --directory=$OEADMIN_HOME/shared/.tmp
+    echo -e "${color}* Uncompressing files ...${endColor}"
+    rm -rf $OEADMIN_HOME/shared/.tmp
+    mkdir -p $OEADMIN_HOME/shared/.tmp
+    tar xf $OEADMIN_HOME/shared/openerp-7.0-latest.tar.gz --directory=$OEADMIN_HOME/shared/.tmp
 
-	echo -e "${color}* Installing shared source files ...${endColor}"
-	rm -rf $OEADMIN_HOME/shared/latest/7.0/*
+    echo -e "${color}* Installing shared source files ...${endColor}"
+    rm -rf $OEADMIN_HOME/shared/latest/7.0/*
     mkdir -p $OEADMIN_HOME/shared/latest/7.0
-	mv $OEADMIN_HOME/shared/.tmp/`ls $OEADMIN_HOME/shared/.tmp/`/* $OEADMIN_HOME/shared/latest/7.0/
+    mv $OEADMIN_HOME/shared/.tmp/`ls $OEADMIN_HOME/shared/.tmp/`/* $OEADMIN_HOME/shared/latest/7.0/
     ;;
     
 get-source)
-	#--------------------------------------------------
-	# Checkout sources from Launchpad 
+    #--------------------------------------------------
+    # Checkout sources from Launchpad 
     #
     # using "https://launchpad.net/~openerp/..." instead of "lp:..." to usa an ananymous download, in case the user has a bzr ssh key setup
-	#--------------------------------------------------
-	if [ ! -d $OEADMIN_HOME/shared/addons/7.0 ] ; then
+    #--------------------------------------------------
+    if [ ! -d $OEADMIN_HOME/shared/addons/7.0 ] ; then
         echo -e "\n${color}* Checkout of openerp-addons 7.0${endColor}"
         mkdir -p $OEADMIN_HOME/shared/addons
         rm -rf $OEADMIN_HOME/shared/addons/~tmp
         bzr checkout --lightweight https://launchpad.net/~openerp/openobject-addons/7.0 $OEADMIN_HOME/shared/addons/~tmp
         mv $OEADMIN_HOME/shared/addons/~tmp $OEADMIN_HOME/shared/addons/7.0
     fi
-	if [ ! -d $OEADMIN_HOME/shared/web/7.0 ] ; then
+    if [ ! -d $OEADMIN_HOME/shared/web/7.0 ] ; then
         echo -e "\n${color}* Checkout of openerp-web 7.0${endColor}"
         mkdir -p $OEADMIN_HOME/shared/web
         rm -rf $OEADMIN_HOME/shared/web/~tmp
         bzr checkout --lightweight https://launchpad.net/~openerp/openerp-web/7.0 $OEADMIN_HOME/shared/web/~tmp
         mv $OEADMIN_HOME/shared/web/~tmp $OEADMIN_HOME/shared/web/7.0
     fi
-	if [ ! -d $OEADMIN_HOME/shared/server/7.0 ] ; then
+    if [ ! -d $OEADMIN_HOME/shared/server/7.0 ] ; then
         echo -e "\n${color}* Checkout of openerp-server 7.0${endColor}"
         mkdir -p $OEADMIN_HOME/shared/server
         rm -rf $OEADMIN_HOME/shared/server/~tmp
         bzr checkout --lightweight https://launchpad.net/~openerp/openobject-server/7.0 $OEADMIN_HOME/shared/server/~tmp
         mv $OEADMIN_HOME/shared/server/~tmp $OEADMIN_HOME/shared/server/7.0
     fi
-	echo "Launchpad sources retrieved."
+    echo "Launchpad sources retrieved."
     ;;
     
 update-source)
-	#--------------------------------------------------
+    #--------------------------------------------------
     # Update sources downloaded with "get-source"
-	#--------------------------------------------------
-	echo -e "* Updating openerp-addons 7.0"
-	bzr update $OEADMIN_HOME/shared/addons/7.0
-	echo -e "* Updating openerp-web 7.0"
-	bzr update $OEADMIN_HOME/shared/web/7.0
-	echo -e "* Updating openerp-server 7.0"
-	bzr update $OEADMIN_HOME/shared/server/7.0
-	echo "Sources updated."
+    #--------------------------------------------------
+    echo -e "* Updating openerp-addons 7.0"
+    bzr update $OEADMIN_HOME/shared/addons/7.0
+    echo -e "* Updating openerp-web 7.0"
+    bzr update $OEADMIN_HOME/shared/web/7.0
+    echo -e "* Updating openerp-server 7.0"
+    bzr update $OEADMIN_HOME/shared/server/7.0
+    echo "Sources updated."
     ;;
 
 version-source)
-	#--------------------------------------------------
+    #--------------------------------------------------
     # List version revision numbers for sources downloaded with "get-source"
-	#--------------------------------------------------
-	echo -e "* Shared sources revision numbers (7.0):"
-	echo -en "server\t"
-	bzr revno -q $OEADMIN_HOME/shared/server/7.0
-	echo -en "addons\t"
-	bzr revno -q $OEADMIN_HOME/shared/addons/7.0
-	echo -en "web\t"
-	bzr revno -q $OEADMIN_HOME/shared/web/7.0
+    #--------------------------------------------------
+    echo -e "* Shared sources revision numbers (7.0):"
+    echo -en "server\t"
+    bzr revno -q $OEADMIN_HOME/shared/server/7.0
+    echo -en "addons\t"
+    bzr revno -q $OEADMIN_HOME/shared/addons/7.0
+    echo -en "web\t"
+    bzr revno -q $OEADMIN_HOME/shared/web/7.0
     ;;
     
 create)
-	#--------------------------------------------------
-	# Create a new instance
-	#--------------------------------------------------
-	INSTANCE=$2
-	if [ -z $INSTANCE ] ; then
+    #--------------------------------------------------
+    # Create a new instance
+    #--------------------------------------------------
+    INSTANCE=$2
+    if [ -z $INSTANCE ] ; then
         echo "STOPPING: please provide a name for the new server instance"
         exit 0
-	fi
+    fi
 
-	if [ -d $OEADMIN_HOME/$INSTANCE ] ; then
-		echo "STOPPING: server instance already exists."
-		exit 0
+    if [ -d $OEADMIN_HOME/$INSTANCE ] ; then
+        echo "STOPPING: server instance already exists."
+        exit 0
     fi
     
-	if [ $3 ] ; then
+    if [ -z `psql postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='$OEADMIN_USER'"` ] ; then
+        echo -e "* Creating database role $OEADMIN_USER ..."
+        sudo su -c "createuser --createdb --no-createrole --no-superuser $OEADMIN_USER" postgres
+    fi
+    
+    if [ $3 ] ; then
         PORT=$3
         shift 1
     else
@@ -233,7 +235,7 @@ create)
     fi
     
     echo "* Creating instance directory ..."
-	mkdir -p $OEADMIN_HOME/$INSTANCE/addons-repo
+    mkdir -p $OEADMIN_HOME/$INSTANCE/addons-repo
     #cp $OEADMIN_HOME/templates/* $OEADMIN_HOME/$INSTANCE
     
     if [ -d $OEADMIN_HOME/shared/server/7.0 ] && [ -d $OEADMIN_HOME/shared/addons/7.0 ] && [ -d $OEADMIN_HOME/shared/web/7.0 ]; then
@@ -267,24 +269,24 @@ xmlrpcs = False
 log_handler = ['werkzeug:CRITICAL']
 " > $OEADMIN_HOME/$INSTANCE/openerp-server.conf
     echo -e "* Creating template start.sh helper script..."
-	echo "#!/bin/sh
+    echo "#!/bin/sh
 DIR=\"\$( cd \"\$( dirname \"\$0\" )\" && pwd )\"
 \$DIR/server/openerp-server --xmlrpc-port=$PORT $* --addons-path=\`ls -dm \$DIR/addons-repo/*|tr -d ' '\` --config=\$DIR/openerp-server.conf \$*
 " > $OEADMIN_HOME/$INSTANCE/start.sh
-	chmod ug+x $OEADMIN_HOME/$INSTANCE/start.sh
+    chmod ug+x $OEADMIN_HOME/$INSTANCE/start.sh
 
     echo "
 Instance \"$INSTANCE\" created: 
 To start it type: `dirname $0`/demov7/start.sh
 To use it browse: http://`hostname`:8069
 "
-	;;
+    ;;
 
 start)
-	INSTANCE=$2
-	shift 2
-	$OEADMIN_HOME/$INSTANCE/start.sh $*
-	;;
+    INSTANCE=$2
+    shift 2
+    $OEADMIN_HOME/$INSTANCE/start.sh $*
+    ;;
 
 auto-install)
     $0 get-dependencies
