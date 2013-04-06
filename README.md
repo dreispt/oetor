@@ -19,7 +19,6 @@ Install git and get the code:
 
     sudo apt-get install git                        # install git in a Debian/Ubuntu OS
     git clone https://github.com/dreispt/oetor.git  # get the code
-    oetor/oetor init                                # install code in /opt/openerp
 
 
 Quickstart full installation
@@ -27,11 +26,11 @@ Quickstart full installation
 
 For an easy and quick start in run:
 
-    /opt/openerp/oetor auto-install 
+    oetor/oetor auto-install
 
-The `auto-install` command will install PostgreSQL and other system dependencies, setup the `/opt/openerp/` home, download v7 sources and configure an initial `demov7` instance. It can be started with:
+The `auto-install` command will install PostgreSQL and other system dependencies, setup the `/opt/oerp/7.0` home, download v7 sources and configure an initial `demo` instance. It can be started with:
 
-    /opt/openerp/demov7/start
+    /opt/oerp/7.0/demo/start
 
 
 Step-by-step installation
@@ -39,23 +38,24 @@ Step-by-step installation
 
 Instead of using the auto-install, the same result can be achieved using the following commands:
   
-    cd /opt/openerp                 # Go to home directory
+    cd /opt/oerp/7.0                # Go to home directory
     ./oetor get-dependencies        # Install system dependencies
     ./oetor get-source              # Download (v7) sources from Launchpad
-    ./oetor create demov7           # Create instance demov7 (on port 8069)
+    ./oetor create demo             # Create demo instance (on port 8069)
 
 
 More commands
 -------------
 
-By default, `oetor` will install itself in `/opt/openerp`. Try:
+By default, `oetor` will install itself in `/opt/oerp/7.0`. Try:
 
-    cd /opt/openerp                 # Go to home directory
+    cd /opt/oerp/7.0                # Go to home directory
+    git pull                        # Get latest oetor version
     ./oetor                         # Display included documentation
-    ./oetor update-source           # Update sources from Launchpad
+    ./oetor update-source           # Update sources to lates version in Launchpad
     ./oetor version-source          # Display source version revision numbers
-    ./oetor create testv7 8070      # Create testv7 instance on port 8070
-    testv7/start -i crm --debug     # Start testv7 in debug mode and install crm module
+    ./oetor create test 8070        # Create test instance on port 8070
+    test/start -i crm --debug       # Start test in debug mode and install crm module
     
 
 Anatomy of a server instance
@@ -63,14 +63,13 @@ Anatomy of a server instance
                    
 An OpenERP instance is a directory inside `oetor`'s home directory, and can be started using the included `start` script. Example:
 
-    ls /opt/openerp/demov7
+    ls /opt/oerp/7.0/demov
 
 The directory contains:
 
-* `server/`: The server source code. By default it's a symlink to the sources in the 'shared' directory.
-* `addons-repo/`: Contains the addons directories to use. These directories are automatically added to the `addons_path` upon server start. By default includes symlinks to the official addons sources in the `shared` directory.
 * `start`: Script to start the instance. If called with additional parameters, these will be passed to the openerp-server.
 * `openerp-server.conf`: Configuration file used by the instance.
+* The contained directories are automatically added to the `addons_path` upon server start. By default these are symlinked to the official addons sources in the `shared` directory. 
 
 
 To-do list
