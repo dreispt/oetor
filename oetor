@@ -9,7 +9,8 @@
 VERSION="0.1"
 OEVERSION="7.0"
 OEADMIN_USER="`whoami`"
-OEADMIN_HOME="$( cd "$( dirname "$0" )" && pwd )"
+#OEADMIN_HOME="$( cd "$( dirname "$0" )" && pwd )"
+OEADMIN_HOME="/opt/oerp"
 color='\e[1;34m'
 endColor='\e[0m'
 
@@ -97,26 +98,40 @@ init)
     #  - reexecution safe (nothing is done)
     #  - repo is a git clone: `git pull` will get it's latest version
     #--------------------------------------------------
+    #oetor init [OEVERSION=7.0]
     if [ "$2" ] ; then
         OEVERSION="$2"
     else
         OEVERSION="7.0"
     fi
-    OEADMIN_HOME="/opt/oerp/$OEVERSION"
 
+    if [ ! -d /var/log/oerp ] ; then
+        echo -e "* Creating base log directory /var/log/oerp ..."
+        sudo mkdir -p /var/log/oerp
+        sudo chown $OEADMIN_USER:root /var/log/oerp
+    fi
     if [ ! -d /var/log/oerp/$OEVERSION ] ; then
-        echo -e "* Creating log directory /var/log/openerp ..."
-        sudo mkdir -p /var/log/oerp/$OEVERSION
-        sudo chown $OEADMIN_USER:root /var/log/oerp/$OEVERSION
+        echo -e "* Creating log directory /var/log/oerp/$OEVERSION ..."
+        mkdir -p /var/log/oerp/$OEVERSION
     fi
 
-    if [ ! -d $OEADMIN_HOME ] ; then
-        sudo mkdir -p /opt/oerp
+    OEADMIN_HOME="/opt/oerp/$OEVERSION"
+    if [ ! -d /opt/oerp ] ; then
+        echo -e "* Creating oetor home directory /opt/oerp ..."
+        sudo git clone https://github.com/dreispt/oetor /opt/oerp
         sudo chown $OEADMIN_USER:root /opt/oerp
-        git clone https://github.com/dreispt/oetor /opt/oerp/$OEVERSION
         # Make sure the local executed copy of the script is the version installed 
-        cp $0 /opt/oerp/$OEVERSION
+        # cp $0 /opt/oerp/$OEVERSION
+    else
+        echo -e "* Getting oetor lates version on directory /opt/oerp ..."
+        git --git-dir=/opt/oerp pull 
     fi
+    if [ ! -d /opt/oerp/$OEVERSION ] ; then
+        echo -e "* Creating instance directory /opt/oerp/$OEVERSION ..."
+        mkdir -p /opt/oerp/$OEVERSION
+    fi
+
+    $0 get-source $OEVERSION
     ;;
     
 get-latest)
@@ -148,22 +163,28 @@ get-source)
     #   using "https://launchpad.net/~openerp/..." instead of "lp:..." for anonymous download (to avoid asking pwd if an ssh key is set)
     #   using `checkout --lightweight` for fast download of shallow branches, but that are still updatable
     #--------------------------------------------------
+    if [ "$2" ] ; then
+        OEVERSION="$2"
+    else
+        OEVERSION="7.0"
+    fi
+    OEADMIN_HOME=$OEADMIN_HOME/$OEVERSION
     echo "Retrieving Launchpad sources to $OEADMIN_HOME/shared:"
     mkdir -p $OEADMIN_HOME/shared
     if [ ! -d $OEADMIN_HOME/shared/addons ] ; then
-        echo -e "\n${color}* Checkout of openerp-addons ${endColor}"
+        echo -e "\n${color}* Checkout of openerp-addons/$OEVERSION ...${endColor}"
         rm -rf $OEADMIN_HOME/shared/~tmp
         bzr checkout --lightweight https://launchpad.net/~openerp/openobject-addons/$OEVERSION $OEADMIN_HOME/shared/~tmp
         mv $OEADMIN_HOME/shared/~tmp $OEADMIN_HOME/shared/addons
     fi
     if [ ! -d $OEADMIN_HOME/shared/web ] ; then
-        echo -e "\n${color}* Checkout of openerp-web ${endColor}"
+        echo -e "\n${color}* Checkout of openerp-web/$OEVERSION ...${endColor}"
         rm -rf $OEADMIN_HOME/shared/~tmp
         bzr checkout --lightweight https://launchpad.net/~openerp/openerp-web/$OEVERSION $OEADMIN_HOME/shared/~tmp
         mv $OEADMIN_HOME/shared/~tmp $OEADMIN_HOME/shared/web
     fi
     if [ ! -d $OEADMIN_HOME/shared/server ] ; then
-        echo -e "\n${color}* Checkout of openerp-server ${endColor}"
+        echo -e "\n${color}* Checkout of openerp-server/$OEVERSION ...${endColor}"
         rm -rf $OEADMIN_HOME/shared/~tmp
         bzr checkout --lightweight https://launchpad.net/~openerp/openobject-server/$OEVERSION $OEADMIN_HOME/shared/~tmp
         mv $OEADMIN_HOME/shared/~tmp $OEADMIN_HOME/shared/server
