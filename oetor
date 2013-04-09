@@ -15,17 +15,19 @@ color='\e[1;34m'
 endColor='\e[0m'
 
 if [ -z "$1" ]; then # || "$1" = "help"
-  echo "== OpenERP-inator == 
-Dominate the entire ERP tri-state area by easilly installing and creating an 
-army of OpenERP server instances in your server. The self-destruct button is 
-intended only for test databases. Beware of Agent P.
+  echo "OpenERP-inator: dominate the entire ERP tri-state area by easilly
+installing and creating an army of OpenERP server instances in your server.
+The self-destruct button is intended only for test databases. Beware of Agent P.
+https://github.com/dreispt/oetor
 
 For an easy and  quick start run: ./oetor auto-install 
 This will make an automatic full installation, including the creation of an
 initial "demo" OpenERP instance. It's equivalent to running the sequence of
 commands: get-dependencies; init; get-source; create demo.
 
-Commands Available:
+Usage: oetor COMMAND [PARAMETERS]
+
+Commands available:
 
   version           Display script's version info.
   get-dependencies  Install system dependencies including the PostgreSQL
@@ -126,6 +128,7 @@ init)
         echo -e "* Getting oetor lates version on directory /opt/oerp ..."
         git --git-dir=/opt/oerp pull 
     fi
+    
     if [ ! -d /opt/oerp/$OEVERSION ] ; then
         echo -e "* Creating instance directory /opt/oerp/$OEVERSION ..."
         mkdir -p /opt/oerp/$OEVERSION
@@ -220,48 +223,71 @@ version-source)
     
 create)
     #--------------------------------------------------
-    # Create a new instance
+    # Create a new instance:
+    #   oetor VERSION INSTANCE [PORT] [FIXED_PARAMS]
     #--------------------------------------------------
-    INSTANCE=$2
-    if [ -z $INSTANCE ] ; then
-        echo "STOPPING: please provide a name for the new server instance"
-        exit 0
-    fi
 
-    if [ -d $OEADMIN_HOME/$INSTANCE ] ; then
-        echo "STOPPING: server instance already exists."
-        exit 0
-    fi
-    
+    # Create psql role if missing
     if [ -z `psql postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='$OEADMIN_USER'"` ] ; then
         echo -e "* Creating database role $OEADMIN_USER ..."
         sudo su -c "createuser --createdb --no-createrole --no-superuser $OEADMIN_USER" postgres
     fi
     
-    if [ $3 ] ; then
-        PORT=$3
+    # Check OpenERP version parameter
+    if [ -z $2 ] ; then
+        echo "Usage: oetor create OEVERSION INSTANCE."
+        exit 0
+    else
+        OEVERSION=$2
+    fi
+    if [ ! -d $OEADMIN_HOME/$OEVERSION ] ; then
+        echo "STOPPING: $OEADMIN_HOME/$OEVERSION does not exist."
+        exit 0
+    fi
+    
+    # Check Instance Name parameter
+    if [ -z $3 ] ; then
+        echo "Usage: oetor create $OEVERSION INSTANCE."
+        exit 0
+    else
+        INSTANCE=$2/$3
+    fi
+    if [ -d $OEADMIN_HOME/$INSTANCE ] ; then
+        echo "STOPPING: $OEADMIN_HOME/$INSTANCE already exists."
+        exit 0
+    fi
+
+    # Check server source available    
+    if [ -d $OEADMIN_HOME/$OEVERSION/shared/server ] ; then
+        OESERVER="shared/server"
+    else
+        if  [ -d $OEADMIN_HOME/$OEVERSION/shared/latest ] ; then
+            OESERVER="shared/latest"
+        else
+            echo "STOPPING: $OEADMIN_HOME/$OEVERSION/shared does not contain server sources."
+            exit 0
+        fi
+    fi
+
+    # Read port
+    if [ $4 ] ; then
+        PORT=$4
         shift 1
     else
         PORT="8069"
     fi
     
+
+    # Create instance directory
     echo "* Creating instance directory ..."
     mkdir -p $OEADMIN_HOME/$INSTANCE
-    
-    if [ -d $OEADMIN_HOME/shared/server ] && [ -d $OEADMIN_HOME/shared/addons ] && [ -d $OEADMIN_HOME/shared/web ]; then
-        echo "* Adding shared sources to site ..."
-        OESERVER="$OEADMIN_HOME/shared/server"
-        ln -s $OEADMIN_HOME/shared/addons $OEADMIN_HOME/$INSTANCE/addons
-        ln -s $OEADMIN_HOME/shared/web/addons $OEADMIN_HOME/$INSTANCE/web
-
-    else
-        if [ -d $OEADMIN_HOME/shared/latest ] ; then
-            echo "* Adding server from shared latest nightly sources ..."
-            OESERVER="$OEADMIN_HOME/shared/latest"
-        else
-            echo "* Skipping server sources: none available ..."
-            exit 0
-        fi
+    echo "* Linking to addons ..."
+    if [ -d $OEADMIN_HOME/$OEVERSION/shared/addons ] ; then
+        ln -s $OEADMIN_HOME/$OEVERSION/shared/addons $OEADMIN_HOME/$INSTANCE/addons
+    fi
+    echo "* Linking to web ..."
+    if [ -d $OEADMIN_HOME/$OEVERSION/shared/web ] ; then
+        ln -s $OEADMIN_HOME/$OEVERSION/shared/web/addons $OEADMIN_HOME/$INSTANCE/web
     fi
     
     echo "* Creating instance database ..."
@@ -279,10 +305,10 @@ log_handler = ['werkzeug:CRITICAL']
 " > $OEADMIN_HOME/$INSTANCE/openerp-server.conf
 
     echo -e "* Creating instance start script ..."
-    shift 2
+    shift 3
     echo "#!/bin/sh
 DIR=\"\$( cd \"\$( dirname \"\$0\" )\" && pwd )\"
-$OESERVER/openerp-server --xmlrpc-port=$PORT $* --addons-path=\`ls -dm \$DIR/*/|tr -d ' '\` --config=\$DIR/openerp-server.conf \$*
+$OEADMIN_HOME/$OEVERSION/$OESERVER/openerp-server --xmlrpc-port=$PORT $* --addons-path=\`ls -dm \$DIR/*/|tr -d ' '\` --config=\$DIR/openerp-server.conf \$*
 " > $OEADMIN_HOME/$INSTANCE/start
     chmod ug+x $OEADMIN_HOME/$INSTANCE/start
 
@@ -299,12 +325,18 @@ start)
     $OEADMIN_HOME/$INSTANCE/start $*
     ;;
 
+test)
+    INSTANCE=$2
+    dropdb $2-test
+    createdb $2-test
+    shift 2
+    $OEADMIN_HOME/$INSTANCE/start --test-enable --test-commit --stop-after-init $*
+    ;;
+
 auto-install)
-    $0 init 7.0
-    cd /opt/oerp/7.0
-    ./oetor get-dependencies
-    ./oetor get-source
-    ./oetor create demo
+    $0 get-dependencies
+    $0 init
+    $0 create 7.0 demo
     ;;
     
 esac
