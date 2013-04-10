@@ -46,6 +46,8 @@ Commands available:
                     listening at port "PORT". If additional "FIXED_OPTIONS" are 
                     provided, they will be included in the generated 'start' 
                     script.
+  start OEVERS NAME Starts this server instance.
+  test OEVERS NAME  Creates a test database and runs tests for the instance.
                    
 An OpenERP instance is a directory inside oetor's home directory. It can be 
 started running the `start` script and and includes a `openerp-server.conf`
@@ -235,7 +237,8 @@ create)
     
     # Check OpenERP version parameter
     if [ -z $2 ] ; then
-        echo "Usage: oetor create OEVERSION INSTANCE."
+        echo "Usage:   oetor create OEVERSION INSTANCE"
+        echo "Example: oetor create 7.0 myserver"
         exit 0
     else
         OEVERSION=$2
@@ -248,6 +251,7 @@ create)
     # Check Instance Name parameter
     if [ -z $3 ] ; then
         echo "Usage: oetor create $OEVERSION INSTANCE."
+        echo "Example: oetor create $OEVERSION myserver"
         exit 0
     else
         INSTANCE=$2/$3
@@ -280,7 +284,7 @@ create)
 
     # Create instance directory
     echo "* Creating instance directory ..."
-    mkdir -p $OEADMIN_HOME/$INSTANCE
+    mkdir $OEADMIN_HOME/$INSTANCE
     echo "* Linking to addons ..."
     if [ -d $OEADMIN_HOME/$OEVERSION/shared/addons ] ; then
         ln -s $OEADMIN_HOME/$OEVERSION/shared/addons $OEADMIN_HOME/$INSTANCE/addons
@@ -307,7 +311,7 @@ log_handler = ['werkzeug:CRITICAL']
     echo -e "* Creating instance start script ..."
     shift 3
     echo "#!/bin/sh
-DIR=\"\$( cd \"\$( dirname \"\$0\" )\" && pwd )\"
+DIR=\"$OEADMIN_HOME/$INSTANCE\"
 $OEADMIN_HOME/$OEVERSION/$OESERVER/openerp-server --xmlrpc-port=$PORT $* --addons-path=\`ls -dm \$DIR/*/|tr -d ' '\` --config=\$DIR/openerp-server.conf \$*
 " > $OEADMIN_HOME/$INSTANCE/start
     chmod ug+x $OEADMIN_HOME/$INSTANCE/start
@@ -320,19 +324,24 @@ To use it browse: http://`hostname`:$PORT
     ;;
 
 start)
-    INSTANCE=$2
-    shift 2
+    INSTANCE=$2/$3
+    shift 3
     $OEADMIN_HOME/$INSTANCE/start $*
     ;;
 
 test)
-    INSTANCE=$2
-    dropdb $2-test
-    createdb $2-test
-    shift 2
+    INSTANCE=$2/$3
+    dropdb $INSTANCE-test
+    createdb $INSTANCE-test
+    shift 3
     $OEADMIN_HOME/$INSTANCE/start --test-enable --test-commit --stop-after-init $*
     ;;
 
+remove)
+    echo "Sorry, the self-destruct button is currently disabled. To go ahead run:
+rm -r /opt/oerp/VERSION/INSTANCE
+dropdb OEVERSION /INSTANCE"
+  
 auto-install)
     $0 get-dependencies
     $0 init
