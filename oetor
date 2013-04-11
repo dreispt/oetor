@@ -9,18 +9,44 @@
 VERSION="0.1"
 OEVERSION="7.0"
 OEADMIN_USER="`whoami`"
-#OEADMIN_HOME="$( cd "$( dirname "$0" )" && pwd )"
-OEADMIN_HOME="/opt/oerp"
+OEADMIN_HOME="/opt/openerp"
 color='\e[1;34m'
 endColor='\e[0m'
 
+
 if [ -z "$1" ]; then # || "$1" = "help"
+  echo "
+Usage:    oetor COMMAND [PARAMETERS]
+
+OpenERP-inator: administrate an army of OpenERP server instances.
+For an easy and  quick start run: ./oetor auto-install
+
+Most used commands:
+
+  help:             Show detailed usage instructions.
+  version           Display script's version info.
+  get-dependencies  Install system dependencies and PostgreSQL.
+  init              Create directory for a version's servers.
+  update-source     Updates the sources with most recent versions.
+  version-source    Displays the sources revision numbers.
+  create NAME       Create an OpenERP server instance.
+  start             Starts running a server instance.
+  test              Runs testes for an instance using a throw away database.
+"
+    exit 0
+fi
+
+#OPTION=$1
+case "$1" in
+
+
+help)
   echo "OpenERP-inator: dominate the entire ERP tri-state area by easilly
 installing and creating an army of OpenERP server instances in your server.
 The self-destruct button is intended only for test databases. Beware of Agent P.
 https://github.com/dreispt/oetor
 
-For an easy and  quick start run: ./oetor auto-install 
+For an easy and  quick start run: ./oetor auto-install
 This will make an automatic full installation, including the creation of an
 initial "demo" OpenERP instance. It's equivalent to running the sequence of
 commands: get-dependencies; init; get-source; create demo.
@@ -32,46 +58,44 @@ Commands available:
   version           Display script's version info.
   get-dependencies  Install system dependencies including the PostgreSQL
                     database. Requires sudoer privilege.
-  init [VERSION]    Creates db role for current user and the directory 
-                    structure. Requires sudoer privilege. VERSION is the 
+  init [VERSION]    Creates db role for current user and the directory
+                    structure. Requires sudoer privilege. VERSION is the
                     OpenERP version: 7.0 | trunk | 6.1.
   get-latest        Retrieves source code from nightly builds repository, into
                     the 'shared' directory.
-  get-source        Retrieves source code from Lanchpad repositories, into 
+  get-source        Retrieves source code from Lanchpad repositories, into
                     the 'shared' directory.
   update-source     Updates the sources with most recent versions.
   version-source    Displays the sources revision numbers.
   create NAME [PORT] [FIXED_OPTIONS]
-                    Create an OpenERP 7 database and instance named "NAME" and 
-                    listening at port "PORT". If additional "FIXED_OPTIONS" are 
-                    provided, they will be included in the generated 'start' 
+                    Create an OpenERP 7 database and instance named "NAME" and
+                    listening at port "PORT". If additional "FIXED_OPTIONS" are
+                    provided, they will be included in the generated 'start'
                     script.
   start OEVERS NAME Starts this server instance.
   test OEVERS NAME  Creates a test database and runs tests for the instance.
-                   
-An OpenERP instance is a directory inside oetor's home directory. It can be 
+
+An OpenERP instance is a directory inside oetor's home directory. It can be
 started running the `start` script and and includes a `openerp-server.conf`
 configuration file used by the instance.
 
-If the `start` script is provided with additional parameters, these will be 
+If the `start` script is provided with additional parameters, these will be
 passed to the openerp-server.
-For example: ./start.sh -u all --stop-after-init    
+For example: ./start.sh -u all --stop-after-init
 
 The contained directories are automatically added to the addons_path upon server
-start. By default includes symlinks to the official addons sources in the 
+start. By default includes symlinks to the official addons sources in the
 'shared' directory.
-"    
-    exit 0
-fi
+"
+    ;;
 
-#OPTION=$1
-case "$1" in
 
 version)
     echo "oetor version: $VERSION"
     echo "oetor home: $OEADMIN_HOME"
     ;;
-    
+
+
 get-dependencies)
     #--------------------------------------------------
     # Install Postgres and System dependencies
@@ -94,147 +118,175 @@ get-dependencies)
     #echo -e "\n---- Install python libraries ----"
     #sudo pip install gdata
     ;;
-    
+
+
 init)
     #--------------------------------------------------
     # Setup directories
-    #  - repo stored in /opt/oerp/<oeversion>
+    #  - repo stored in /opt/openerp/<oeversion>
     #  - reexecution safe (nothing is done)
     #  - repo is a git clone: `git pull` will get it's latest version
     #--------------------------------------------------
     #oetor init [OEVERSION=7.0]
     if [ "$2" ] ; then
         OEVERSION="$2"
+        shift 1
     else
         OEVERSION="7.0"
     fi
 
-    if [ ! -d /var/log/oerp ] ; then
-        echo -e "* Creating base log directory /var/log/oerp ..."
-        sudo mkdir -p /var/log/oerp
-        sudo chown $OEADMIN_USER:root /var/log/oerp
+    if [ ! -d /var/log/openerp ] ; then
+        echo -e "* Creating base log directory /var/log/openerp ..."
+        sudo mkdir -p /var/log/openerp
+        sudo chown $OEADMIN_USER:root /var/log/openerp
     fi
-    if [ ! -d /var/log/oerp/$OEVERSION ] ; then
-        echo -e "* Creating log directory /var/log/oerp/$OEVERSION ..."
-        mkdir -p /var/log/oerp/$OEVERSION
+    if [ ! -d /var/log/openerp/$OEVERSION ] ; then
+        echo -e "* Creating log directory /var/log/openerp/$OEVERSION ..."
+        mkdir -p /var/log/openerp/$OEVERSION
     fi
 
-    OEADMIN_HOME="/opt/oerp/$OEVERSION"
-    if [ ! -d /opt/oerp ] ; then
-        echo -e "* Creating oetor home directory /opt/oerp ..."
-        sudo git clone https://github.com/dreispt/oetor /opt/oerp
-        sudo chown $OEADMIN_USER:root /opt/oerp
-        # Make sure the local executed copy of the script is the version installed 
-        # cp $0 /opt/oerp/$OEVERSION
+    if [ ! -d $OEADMIN_HOME ] ; then
+        echo -e "* Creating oetor home directory $OEADMIN_HOME ..."
+        sudo git clone https://github.com/dreispt/oetor $OEADMIN_HOME
+        sudo chown $OEADMIN_USER:root $OEADMIN_HOME
     else
-        echo -e "* Getting oetor lates version on directory /opt/oerp ..."
-        git --git-dir=/opt/oerp pull 
-    fi
-    
-    if [ ! -d /opt/oerp/$OEVERSION ] ; then
-        echo -e "* Creating instance directory /opt/oerp/$OEVERSION ..."
-        mkdir -p /opt/oerp/$OEVERSION
+        echo -e "* Getting oetor latest version on directory $OEADMIN_HOME ..."
+        git --git-dir=$OEADMIN_HOME pull
     fi
 
-    $0 get-source $OEVERSION
+    OEADMIN_DIR="$OEADMIN_HOME/$OEVERSION"
+    if [ ! -d $OEADMIN_DIR ] ; then
+        echo -e "* Creating instance directory $OEADMIN_DIR ..."
+        mkdir -p $OEADMIN_DIR
+    fi
+
+    $0 get-source $OEADMIN_DIR
     ;;
-    
+
+
 get-latest)
     #--------------------------------------------------
     # Download latest nightly build
     #
-    #   Installed at $OEADMIN_HOME/shared/latest/7.0
+    #   Installed at $OEADMIN_HOME/VERSION/shared/latest
     #   If re-downloading, sources are replaced but referring symlinks are kept
     #--------------------------------------------------
-    echo "Retrieving nightly build sources to $OEADMIN_HOME/shared:"
+    if [ "$2" ] ; then
+        OEVERSION="$2"
+        shift 1
+    else
+        OEVERSION="7.0"
+    fi
+
+    OEADMIN_DIR="$OEADMIN_HOME/$OEVERSION"
+    echo "Retrieving nightly build sources to $OEADMIN_DIR/shared/latest:"
     echo -e "${color}* Downloading version 7 nightly build ...${endColor}"
-    mkdir -p $OEADMIN_HOME/shared
-    wget --no-clobber http://nightly.openerp.com/$OEVERSION/nightly/src/openerp-$OEVERSION-latest.tar.gz -P $OEADMIN_HOME/shared
+    mkdir -p $OEADMIN_DIR/shared
+    wget --no-clobber http://nightly.openerp.com/$OEVERSION/nightly/src/openerp-$OEVERSION-latest.tar.gz -P $OEADMIN_DIR/shared
 
     echo -e "${color}* Uncompressing files ...${endColor}"
-    rm -rf $OEADMIN_HOME/shared/.tmp
-    mkdir -p $OEADMIN_HOME/shared/.tmp
-    tar xf $OEADMIN_HOME/shared/openerp-$OEVERSION-latest.tar.gz --directory=$OEADMIN_HOME/shared/.tmp
+    rm -rf $OEADMIN_DIR/shared/.tmp
+    mkdir -p $OEADMIN_DIR/shared/.tmp
+    tar xf $OEADMIN_DIR/shared/openerp-$OEVERSION-latest.tar.gz --directory=$OEADMIN_DIR/shared/.tmp
 
     echo -e "${color}* Installing shared source files ...${endColor}"
-    rm -rf $OEADMIN_HOME/shared/latest/*
-    mkdir -p $OEADMIN_HOME/shared/latest
-    mv $OEADMIN_HOME/shared/.tmp/`ls $OEADMIN_HOME/shared/.tmp/`/* $OEADMIN_HOME/shared/latest/
+    rm -rf $OEADMIN_DIR/shared/latest/*
+    mkdir -p $OEADMIN_DIR/shared/latest
+    mv $OEADMIN_DIR/shared/.tmp/`ls $OEADMIN_DIR/shared/.tmp/`/* $OEADMIN_DIR/shared/latest/
     ;;
-    
+
+
 get-source)
     #--------------------------------------------------
-    # Checkout sources from Launchpad 
+    # Checkout sources from Launchpad
     #   using "https://launchpad.net/~openerp/..." instead of "lp:..." for anonymous download (to avoid asking pwd if an ssh key is set)
     #   using `checkout --lightweight` for fast download of shallow branches, but that are still updatable
     #--------------------------------------------------
     if [ "$2" ] ; then
         OEVERSION="$2"
+        shift 1
     else
         OEVERSION="7.0"
     fi
-    OEADMIN_HOME=$OEADMIN_HOME/$OEVERSION
-    echo "Retrieving Launchpad sources to $OEADMIN_HOME/shared:"
-    mkdir -p $OEADMIN_HOME/shared
-    if [ ! -d $OEADMIN_HOME/shared/addons ] ; then
-        echo -e "\n${color}* Checkout of openerp-addons/$OEVERSION ...${endColor}"
-        rm -rf $OEADMIN_HOME/shared/~tmp
-        bzr checkout --lightweight https://launchpad.net/~openerp/openobject-addons/$OEVERSION $OEADMIN_HOME/shared/~tmp
-        mv $OEADMIN_HOME/shared/~tmp $OEADMIN_HOME/shared/addons
+    OEADMIN_DIR=$OEADMIN_HOME/$OEVERSION
+    mkdir -p $OEADMIN_DIR/shared
+    if [ ! -d $OEADMIN_DIR/shared/addons ] ; then
+        echo -e "\n${color}Checkout of openerp-addons/$OEVERSION ...${endColor}"
+        rm -rf $OEADMIN_DIR/shared/~tmp
+        bzr checkout --lightweight https://launchpad.net/~openerp/openobject-addons/$OEVERSION $OEADMIN_DIR/shared/~tmp
+        mv $OEADMIN_DIR/shared/~tmp $OEADMIN_DIR/shared/addons
     fi
-    if [ ! -d $OEADMIN_HOME/shared/web ] ; then
-        echo -e "\n${color}* Checkout of openerp-web/$OEVERSION ...${endColor}"
-        rm -rf $OEADMIN_HOME/shared/~tmp
-        bzr checkout --lightweight https://launchpad.net/~openerp/openerp-web/$OEVERSION $OEADMIN_HOME/shared/~tmp
-        mv $OEADMIN_HOME/shared/~tmp $OEADMIN_HOME/shared/web
+    if [ ! -d $OEADMIN_DIR/shared/web ] ; then
+        echo -e "\n${color}Checkout of openerp-web/$OEVERSION ...${endColor}"
+        rm -rf $OEADMIN_DIR/shared/~tmp
+        bzr checkout --lightweight https://launchpad.net/~openerp/openerp-web/$OEVERSION $OEADMIN_DIR/shared/~tmp
+        mv $OEADMIN_DIR/shared/~tmp $OEADMIN_DIR/shared/web
     fi
-    if [ ! -d $OEADMIN_HOME/shared/server ] ; then
-        echo -e "\n${color}* Checkout of openerp-server/$OEVERSION ...${endColor}"
-        rm -rf $OEADMIN_HOME/shared/~tmp
-        bzr checkout --lightweight https://launchpad.net/~openerp/openobject-server/$OEVERSION $OEADMIN_HOME/shared/~tmp
-        mv $OEADMIN_HOME/shared/~tmp $OEADMIN_HOME/shared/server
+    if [ ! -d $OEADMIN_DIR/shared/server ] ; then
+        echo -e "\n${color}Checkout of openerp-server/$OEVERSION ...${endColor}"
+        rm -rf $OEADMIN_DIR/shared/~tmp
+        bzr checkout --lightweight https://launchpad.net/~openerp/openobject-server/$OEVERSION $OEADMIN_DIR/shared/~tmp
+        mv $OEADMIN_DIR/shared/~tmp $OEADMIN_DIR/shared/server
     fi
-    echo "Launchpad sources retrieved."
+    echo "Launchpad sources ready."
     ;;
-    
+
+
 update-source)
     #--------------------------------------------------
-    # Update sources downloaded with "get-source"
+    # Update the sources downloaded with "get-source"
     #--------------------------------------------------
-    echo -e "* Updating openerp-addons"
-    bzr update $OEADMIN_HOME/shared/addons
+    if [ "$2" ] ; then
+        OEVERSION="$2"
+        shift 1
+    else
+        OEVERSION="7.0"
+    fi
+    OEADMIN_DIR=$OEADMIN_HOME/$OEVERSION
+
+    echo -e "Updating openerp-addons"
+    bzr update $OEADMIN_DIR/shared/addons
     echo -e "* Updating openerp-web"
-    bzr update $OEADMIN_HOME/shared/web
+    bzr update $OEADMIN_DIR/shared/web
     echo -e "* Updating openerp-server"
-    bzr update $OEADMIN_HOME/shared/server
+    bzr update $OEADMIN_DIR/shared/server
     echo "Sources updated."
     ;;
+
 
 version-source)
     #--------------------------------------------------
     # List version revision numbers for sources downloaded with "get-source"
     #--------------------------------------------------
+    if [ "$2" ] ; then
+        OEVERSION="$2"
+        shift 1
+    else
+        OEVERSION="7.0"
+    fi
+    OEADMIN_DIR=$OEADMIN_HOME/$OEVERSION
+
     echo -e "* Shared sources revision numbers ($OEVERSION):"
     echo -en "server\t"
-    bzr revno -q $OEADMIN_HOME/shared/server
+    bzr revno -q $OEADMIN_DIR/shared/server
     echo -en "addons\t"
-    bzr revno -q $OEADMIN_HOME/shared/addons
+    bzr revno -q $OEADMIN_DIR/shared/addons
     echo -en "web\t"
-    bzr revno -q $OEADMIN_HOME/shared/web
+    bzr revno -q $OEADMIN_DIR/shared/web
     ;;
-    
+
+
 create)
     #--------------------------------------------------
     # Create a new instance:
     #   oetor VERSION INSTANCE [PORT] [FIXED_PARAMS]
     #--------------------------------------------------
-
     # Create psql role if missing
     if [ -z `psql postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='$OEADMIN_USER'"` ] ; then
         echo -e "* Creating database role $OEADMIN_USER ..."
         sudo su -c "createuser --createdb --no-createrole --no-superuser $OEADMIN_USER" postgres
     fi
-    
+
     # Check OpenERP version parameter
     if [ -z $2 ] ; then
         echo "Usage:   oetor create OEVERSION INSTANCE"
@@ -243,109 +295,117 @@ create)
     else
         OEVERSION=$2
     fi
-    if [ ! -d $OEADMIN_HOME/$OEVERSION ] ; then
-        echo "STOPPING: $OEADMIN_HOME/$OEVERSION does not exist."
+
+    OEADMIN_DIR=$OEADMIN_HOME/$OEVERSION
+    if [ ! -d $OEADMIN_DIR ] ; then
+        echo "STOPPING: $OEADMIN_DIR does not exist."
         exit 0
     fi
-    
+
     # Check Instance Name parameter
     if [ -z $3 ] ; then
         echo "Usage: oetor create $OEVERSION INSTANCE."
         echo "Example: oetor create $OEVERSION myserver"
         exit 0
     else
-        INSTANCE=$2/$3
+        INSTANCE=$3
     fi
-    if [ -d $OEADMIN_HOME/$INSTANCE ] ; then
-        echo "STOPPING: $OEADMIN_HOME/$INSTANCE already exists."
+    if [ -d $OEADMIN_DIR/$INSTANCE ] ; then
+        echo "STOPPING: $OEADMIN_DIR/$INSTANCE already exists."
         exit 0
     fi
 
-    # Check server source available    
-    if [ -d $OEADMIN_HOME/$OEVERSION/shared/server ] ; then
+    # Check server source available
+    if [ -d $OEADMIN_DIR/shared/server ] ; then
         OESERVER="shared/server"
     else
-        if  [ -d $OEADMIN_HOME/$OEVERSION/shared/latest ] ; then
+        if  [ -d $OEADMIN_DIR/shared/latest ] ; then
             OESERVER="shared/latest"
         else
-            echo "STOPPING: $OEADMIN_HOME/$OEVERSION/shared does not contain server sources."
+            echo "STOPPING: $OEADMIN_DIR/shared does not contain server sources."
             exit 0
         fi
     fi
 
-    # Read port
+    # Read port to use
     if [ $4 ] ; then
         PORT=$4
         shift 1
     else
         PORT="8069"
     fi
-    
+
 
     # Create instance directory
     echo "* Creating instance directory ..."
-    mkdir $OEADMIN_HOME/$INSTANCE
+    mkdir $OEADMIN_DIR/$INSTANCE
     echo "* Linking to addons ..."
-    if [ -d $OEADMIN_HOME/$OEVERSION/shared/addons ] ; then
-        ln -s $OEADMIN_HOME/$OEVERSION/shared/addons $OEADMIN_HOME/$INSTANCE/addons
+    if [ -d $OEADMIN_DIR/shared/addons ] ; then
+        ln -s $OEADMIN_DIR/shared/addons $OEADMIN_DIR/$INSTANCE/addons
     fi
     echo "* Linking to web ..."
-    if [ -d $OEADMIN_HOME/$OEVERSION/shared/web ] ; then
-        ln -s $OEADMIN_HOME/$OEVERSION/shared/web/addons $OEADMIN_HOME/$INSTANCE/web
+    if [ -d $OEADMIN_DIR/shared/web ] ; then
+        ln -s $OEADMIN_DIR/shared/web/addons $OEADMIN_DIR/$INSTANCE/web
     fi
-    
+
     echo "* Creating instance database ..."
-    createdb $INSTANCE
-    
+    createdb "$INSTANCE-$OEVERSION"
+
     echo "* Creating instance config file ..."
     echo "[options]
 ; This is the password that allows database operations:
 ; admin_passwd = admin
 db_user = $OEADMIN_USER
-db_name = $INSTANCE
+db_name = $INSTANCE-$OEVERSION
 netrpc = False
 xmlrpcs = False
 log_handler = ['werkzeug:CRITICAL']
-" > $OEADMIN_HOME/$INSTANCE/openerp-server.conf
+" > $OEADMIN_DIR/$INSTANCE/openerp-server.conf
 
     echo -e "* Creating instance start script ..."
     shift 3
     echo "#!/bin/sh
-DIR=\"$OEADMIN_HOME/$INSTANCE\"
-$OEADMIN_HOME/$OEVERSION/$OESERVER/openerp-server --xmlrpc-port=$PORT $* --addons-path=\`ls -dm \$DIR/*/|tr -d ' '\` --config=\$DIR/openerp-server.conf \$*
-" > $OEADMIN_HOME/$INSTANCE/start
-    chmod ug+x $OEADMIN_HOME/$INSTANCE/start
+DIR=\"$OEADMIN_DIR/$INSTANCE\"
+$OEADMIN_DIR/$OESERVER/openerp-server --xmlrpc-port=$PORT $* --addons-path=\`ls -dm \$DIR/*/|tr -d ' '\` --config=\$DIR/openerp-server.conf \$*
+" > $OEADMIN_DIR/$INSTANCE/start
+    chmod ug+x $OEADMIN_DIR/$INSTANCE/start
 
     echo "
-Instance \"$INSTANCE\" created: 
-To start it type: $OEADMIN_HOME/$INSTANCE/start
+Instance \"$INSTANCE\" created listening on port $PORT.
+To start it type: $OEADMIN_DIR/$INSTANCE/start
 To use it browse: http://`hostname`:$PORT
 "
     ;;
 
+
 start)
-    INSTANCE=$2/$3
+    OEVERSION=$2
+    INSTANCE=$3
     shift 3
-    $OEADMIN_HOME/$INSTANCE/start $*
+    $OEADMIN_HOME/$OEVERSION/$INSTANCE/start $*
     ;;
 
+
 test)
-    INSTANCE=$2/$3
-    dropdb $INSTANCE-test
-    createdb $INSTANCE-test
+    OEVERSION=$2
+    INSTANCE=$3
+    dropdb $INSTANCE-TEST-$OEVERSION
+    createdb $INSTANCE-TEST-$OEVERSION
     shift 3
-    $OEADMIN_HOME/$INSTANCE/start --test-enable --test-commit --stop-after-init $*
+    $OEADMIN_HOME/$OEVERSION/$INSTANCE/start --test-enable --test-commit --stop-after-init $*
     ;;
+
 
 remove)
     echo "Sorry, the self-destruct button is currently disabled. To go ahead run:
-rm -r /opt/oerp/VERSION/INSTANCE
-dropdb OEVERSION /INSTANCE"
-  
+rm -r $OEADMIN_HOME/VERSION/INSTANCE
+dropdb INSTANCE-VERSION"
+
+
 auto-install)
     $0 get-dependencies
     $0 init
     $0 create 7.0 demo
     ;;
-    
+
 esac
