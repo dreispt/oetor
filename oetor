@@ -117,6 +117,7 @@ get-dependencies)
 
     #echo -e "\n---- Install python libraries ----"
     #sudo pip install gdata
+    echo -e "Dependencies installed."
     ;;
 
 
@@ -142,13 +143,13 @@ init)
     fi
     if [ ! -d /var/log/openerp/$OEVERSION ] ; then
         echo -e "* Creating log directory /var/log/openerp/$OEVERSION ..."
-        mkdir -p /var/log/openerp/$OEVERSION
+        sudo mkdir -p /var/log/openerp/$OEVERSION
     fi
 
     if [ ! -d $OEADMIN_HOME ] ; then
         echo -e "* Creating oetor home directory $OEADMIN_HOME ..."
         sudo git clone https://github.com/dreispt/oetor $OEADMIN_HOME
-        sudo chown $OEADMIN_USER:root $OEADMIN_HOME
+        sudo chown -R $OEADMIN_USER:root $OEADMIN_HOME
     else
         echo -e "* Getting oetor latest version on directory $OEADMIN_HOME ..."
         git --git-dir=$OEADMIN_HOME pull
@@ -156,11 +157,11 @@ init)
 
     OEADMIN_DIR="$OEADMIN_HOME/$OEVERSION"
     if [ ! -d $OEADMIN_DIR ] ; then
-        echo -e "* Creating instance directory $OEADMIN_DIR ..."
+        echo -e "\n* Creating instance directory $OEADMIN_DIR ..."
         mkdir -p $OEADMIN_DIR
     fi
 
-    $0 get-source $OEADMIN_DIR
+    $0 get-source $OEVERSION
     ;;
 
 
@@ -228,7 +229,7 @@ get-source)
         bzr checkout --lightweight https://launchpad.net/~openerp/openobject-server/$OEVERSION $OEADMIN_DIR/shared/~tmp
         mv $OEADMIN_DIR/shared/~tmp $OEADMIN_DIR/shared/server
     fi
-    echo "Launchpad sources ready."
+    echo -e "\nLaunchpad sources ready."
     ;;
 
 
@@ -255,7 +256,7 @@ update-source)
 
 
 version-source)
-    #--------------------------------------------------
+    #-------------------------------------------------
     # List version revision numbers for sources downloaded with "get-source"
     #--------------------------------------------------
     if [ "$2" ] ; then
@@ -279,7 +280,7 @@ version-source)
 create)
     #--------------------------------------------------
     # Create a new instance:
-    #   oetor VERSION INSTANCE [PORT] [FIXED_PARAMS]
+    #   oetor create VERSION INSTANCE [PORT] [FIXED_PARAMS]
     #--------------------------------------------------
     # Create psql role if missing
     if [ -z `psql postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='$OEADMIN_USER'"` ] ; then
@@ -310,7 +311,7 @@ create)
     else
         INSTANCE=$3
     fi
-    if [ -d $OEADMIN_DIR/$INSTANCE ] ; then
+    if [ -f $OEADMIN_DIR/$INSTANCE/start ] ; then
         echo "STOPPING: $OEADMIN_DIR/$INSTANCE already exists."
         exit 0
     fi
@@ -366,18 +367,59 @@ log_handler = ['werkzeug:CRITICAL']
     shift 3
     echo "#!/bin/sh
 DIR=\"$OEADMIN_DIR/$INSTANCE\"
-$OEADMIN_DIR/$OESERVER/openerp-server --xmlrpc-port=$PORT $* --addons-path=\`ls -dm \$DIR/*/|tr -d ' '\` --config=\$DIR/openerp-server.conf \$*
+ADDONS=\"\`ls -dm \$DIR/*/|tr -d '[:space:]'\`\"
+$OEADMIN_DIR/$OESERVER/openerp-server --xmlrpc-port=$PORT $* --addons-path=\"\$ADDONS\" --config=\"\$DIR/openerp-server.conf\" \$*
 " > $OEADMIN_DIR/$INSTANCE/start
     chmod ug+x $OEADMIN_DIR/$INSTANCE/start
 
     echo "
-Instance \"$INSTANCE\" created listening on port $PORT.
+Instance \"$INSTANCE\" created configured for port $PORT.
 To start it type: $OEADMIN_DIR/$INSTANCE/start
 To use it browse: http://`hostname`:$PORT
 "
     ;;
 
 
+create-branch)
+    #--------------------------------------------------
+    if [ -z $3 ] ; then
+        echo "oetor create-branch: Create a new instance to test a branch or merge proposal.
+Usage: oetor create-branch VERSION MPURL [PORT] [FIXED_PARAMS]"
+        exit 0
+    fi
+   #--------------------------------------------------
+ 
+    # Get parameters
+    OEVERSION=$2
+    MPURL=$3
+    shift 3
+    
+    # Get optional port
+    if [ $4 ] ; then
+        PORT=$4
+        shift 1
+    else
+        PORT="8069"
+    fi
+
+    # Create instance
+    INSTANCE="`basename $MPURL`"
+    $0 create $OEVERSION $INSTANCE $PORT $*
+
+    # Get MP sources
+    echo -e "Retrieving branch ..."
+    bzr branch $MPURL $OEADMIN_HOME/$OEVERSION/$INSTANCE/$INSTANCE
+    echo -e "Branch contents:"
+    ls $OEADMIN_HOME/$OEVERSION/$INSTANCE/$INSTANCE
+    
+    # Init modules
+    #echo -e "\nStarting instance and installation of branch modules ..."
+    #MODULES="`ls -d1 $OEADMIN_HOME/$OEVERSION/$INSTANCE/$INSTANCE/*/ | xargs -I file basename file | tr '\n' ','`"
+    #echo "$MODULES"
+    #$0 start $OEVERSION $INSTANCE --init="$MODULES"
+    ;;
+    
+    
 start)
     OEVERSION=$2
     INSTANCE=$3
@@ -400,6 +442,7 @@ remove)
     echo "Sorry, the self-destruct button is currently disabled. To go ahead run:
 rm -r $OEADMIN_HOME/VERSION/INSTANCE
 dropdb INSTANCE-VERSION"
+    ;;
 
 
 auto-install)
