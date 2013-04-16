@@ -434,7 +434,7 @@ test)
     dropdb $INSTANCE-TEST-$OEVERSION
     createdb $INSTANCE-TEST-$OEVERSION
     shift 3
-    $OEADMIN_HOME/$OEVERSION/$INSTANCE/start --test-enable --test-commit --stop-after-init $*
+    $OEADMIN_HOME/$OEVERSION/$INSTANCE/start --test-enable --stop-after-init $*
     ;;
 
 
