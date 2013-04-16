@@ -6,7 +6,7 @@
 ################################################################################
 
 #fixed parameters:
-VERSION="0.1"
+VERSION="0.2"
 OEVERSION="7.0"
 OEADMIN_USER="`whoami`"
 OEADMIN_HOME="/opt/openerp"
