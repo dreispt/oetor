@@ -70,6 +70,7 @@ Commands available:
                     script.
   start OEVERS NAME Starts this server instance.
   test OEVERS NAME  Creates a test database and runs tests for the instance.
+  fake-smtp         Launch a test SMTP server on localhost, printing to stdout.
 
 An OpenERP instance is a directory inside oetor's home directory. It can be
 started running the `start` script and and includes a `openerp-server.conf`
@@ -445,6 +446,10 @@ Retrieve a branch from Launchpad and install all its modules."
     $0 start $OEVERSION $INSTANCE --init="${MODULES%?}" --stop-after-init
     ;;
     
+
+fake-smtp)
+    sudo python -m smtpd -n -c DebuggingServer localhost:25
+
 
 start)
     OEVERSION=$2
