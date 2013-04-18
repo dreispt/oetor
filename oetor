@@ -449,6 +449,7 @@ Retrieve a branch from Launchpad and install all its modules."
 
 fake-smtp)
     sudo python -m smtpd -n -c DebuggingServer localhost:25
+    ;;
 
 
 start)
