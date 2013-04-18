@@ -13,25 +13,20 @@ OEADMIN_HOME="/opt/openerp"
 color='\e[1;34m'
 endColor='\e[0m'
 
+# Basic usage instruction
+if [ -z "$1" ]; then
+    echo "usage: oetor <command> [<args>]
 
-if [ -z "$1" ]; then # || "$1" = "help"
-  echo "
-Usage:    oetor COMMAND [PARAMETERS]
+The most commonly used commands are:
+  help              Show all commands and detailed usage instructions.
+  get-dependencies  Install PostgreSQL and OpenERP system dependencies.
+  init              Initialize a OpenERP home and it's server sources.
+  create            Create an OpenERP server instance.
+  start             Start running a server instance.
+  test              Create a temporay db and run tests for an instance
 
-OpenERP-inator: administrate an army of OpenERP server instances.
-For an easy and  quick start run: ./oetor auto-install
-
-Most used commands:
-
-  help:             Show detailed usage instructions.
-  version           Display script's version info.
-  get-dependencies  Install system dependencies and PostgreSQL.
-  init              Create directory for a version's servers.
-  update-source     Updates the sources with most recent versions.
-  version-source    Displays the sources revision numbers.
-  create NAME       Create an OpenERP server instance.
-  start             Starts running a server instance.
-  test              Runs testes for an instance using a throw away database.
+Type \`oetor help\` to show all commands available.
+Type \`oetor <command>\` (with no argument) to get more help on a command.
 "
     exit 0
 fi
@@ -41,17 +36,18 @@ case "$1" in
 
 
 help)
-  echo "OpenERP-inator: dominate the entire ERP tri-state area by easilly
-installing and creating an army of OpenERP server instances in your server.
-The self-destruct button is intended only for test databases. Beware of Agent P.
+  echo "usage: oetor <command> [<args>]
+OpenERP-inator, a toll to manage and test multiple OpenERP server instances.
 https://github.com/dreispt/oetor
+
+<fluff> Dominate the entire ERP tri-state area by easilly installing and 
+creating an army of OpenERP server instances in your server. Beware of the 
+self-destruct button. </fluff>
 
 For an easy and  quick start run: ./oetor auto-install
 This will make an automatic full installation, including the creation of an
 initial "demo" OpenERP instance. It's equivalent to running the sequence of
 commands: get-dependencies; init; get-source; create demo.
-
-Usage: oetor COMMAND [PARAMETERS]
 
 Commands available:
 
@@ -414,8 +410,9 @@ Usage: oetor create-branch VERSION MPURL [PORT] [FIXED_PARAMS]"
     
     # Init modules
     #echo -e "\nStarting instance and installation of branch modules ..."
-    #MODULES="`ls -d1 $OEADMIN_HOME/$OEVERSION/$INSTANCE/$INSTANCE/*/ | xargs -I file basename file | tr '\n' ','`"
-    #echo "$MODULES"
+    export MODULES="`ls -d1 $OEADMIN_HOME/$OEVERSION/$INSTANCE/$INSTANCE/*/ | xargs -I file basename file | tr '\n' ','`"
+    echo "Module list:"
+    echo "$MODULES"
     #$0 start $OEVERSION $INSTANCE --init="$MODULES"
     ;;
     
