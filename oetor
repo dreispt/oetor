@@ -37,7 +37,7 @@ case "$1" in
 
 help)
   echo "usage: oetor <command> [<args>]
-OpenERP-inator, a toll to manage and test multiple OpenERP server instances.
+OpenERP-inator, a tool to manage and test multiple OpenERP server instances.
 https://github.com/dreispt/oetor
 
 <fluff> Dominate the entire ERP tri-state area by easilly installing and 
@@ -417,6 +417,35 @@ Usage: oetor create-branch VERSION MPURL [PORT] [FIXED_PARAMS]"
     ;;
     
     
+install)
+     #--------------------------------------------------
+    if [ -z "$5" ] ; then
+        echo "usage: oetor install <version> <instance> <dirname> <lp url>
+Retrieve a branch from Launchpad and install all its modules."
+        exit 0
+    fi
+   #--------------------------------------------------
+ 
+    # Get parameters
+    OEVERSION="$2"
+    INSTANCE="$3"
+    DIRNAME="$4"
+    MPURL="$5"
+    
+    # Get MP sources
+    echo -e "Retrieving branch to $OEADMIN_HOME/$OEVERSION/$INSTANCE/$DIRNAME..."
+    bzr branch $MPURL $OEADMIN_HOME/$OEVERSION/$INSTANCE/$DIRNAME
+    echo -e "Branch contents:"
+    ls $OEADMIN_HOME/$OEVERSION/$INSTANCE/$DIRNAME
+    
+    # Init modules
+    echo -e "\nInstalling branch modules ..."
+    export MODULES="`ls -d1 $OEADMIN_HOME/$OEVERSION/$INSTANCE/$DIRNAME/*/ | xargs -I file basename file | tr '\n' ','`"
+    echo "Modules to install: ${MODULES%?}" # remove trailing comma
+    $0 start $OEVERSION $INSTANCE --init="${MODULES%?}" --stop-after-init
+    ;;
+    
+
 start)
     OEVERSION=$2
     INSTANCE=$3
