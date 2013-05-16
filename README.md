@@ -9,7 +9,7 @@ Main features:
 * One-line creation of new server instances.
 * One-line to run tests for a server instance.
 * Easily add addons projects - just add the directory with it's sources inside the instance's `addons-repo` directory and restart the server.
-* Easily list running instances and respective listening ports. [IN PROGRESS]
+* Easily list running instances and respective listening ports.
 
 
 Getting the code
@@ -24,13 +24,13 @@ Install git and get the code:
 Quickstart full installation
 ---------------------------
 
-For an easy and quick start in run:
+For an easy and quick start run:
 
-    oetor/oetor auto-install
+    ./oetor auto-install
 
 The `auto-install` command will install PostgreSQL and other system dependencies, setup the `/opt/oerp/7.0` home, download v7 sources and configure an initial `demo` instance. It can be started with:
 
-    /opt/openerp/7.0/demo/start
+    /opt/openerp/demo/norm-bot start
 
 
 Step-by-step installation
@@ -38,22 +38,21 @@ Step-by-step installation
 
 Instead of using the auto-install, the same result can be achieved using the following commands:
   
-    cd /opt/openerp                 # Go to home directory
-    ./oetor get-dependencies        # Install system dependencies
-    ./oetor get-source              # Download (v7) sources from Launchpad
-    ./oetor create demo             # Create demo instance (on port 8069)
+    ./oetor setup dependencies        # Install system dependencies
+    ./oetor setup sources 7.0         # Download (v7) sources from Launchpad
+    ./oetor create demo sources-7.0   # Create demo instance (on port 8069)
+    ./oetor start demo                # Start a demo instance server
 
 
 More commands
 -------------
 
-By default, `oetor` will install itself in `/opt/oerp/7.0`. Try:
+By default, `oetor` will install itself in `/opt/openerp`. Try:
 
     cd /opt/openerp                 # Go to home directory
-    git pull                        # Get latest oetor version
     ./oetor                         # Display basic usage help
-    ./oetor update-source           # Update sources to latest Launchpad versions
-    ./oetor version-source          # Display source revision numbers
+    ./oetor setup update sources    # Update sources to latest Launchpad versions
+    ./oetor version sources         # Display source revision numbers
     ./oetor create test 8070        # Create test instance on port 8070
     test/start -i crm --debug       # Start test in debug mode and install crm module
     

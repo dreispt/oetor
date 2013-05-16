@@ -31,12 +31,11 @@ Type \`oetor <command>\` (with no argument) to get more help on a command.
     exit 0
 fi
 
-#OPTION=$1
+
 case "$1" in
 
-
 help)
-  echo "usage: oetor <command> [<args>]
+    echo "usage: oetor <command> [<args>]
 OpenERP-inator, a tool to manage and test multiple OpenERP server instances.
 https://github.com/dreispt/oetor
 
@@ -51,17 +50,22 @@ commands: get-dependencies; init; get-source; create demo.
 
 Commands available:
 
-  version           Display script's version info.
-  get-dependencies  Install system dependencies including the PostgreSQL
+  init              Creates db role for current user and the directory
+                    structure. Requires sudoer privilege.
+  setup dependencies  
+                    Install system dependencies including the PostgreSQL
                     database. Requires sudoer privilege.
-  init [VERSION]    Creates db role for current user and the directory
-                    structure. Requires sudoer privilege. VERSION is the
-                    OpenERP version: 7.0 | trunk | 6.1.
-  get-latest        Retrieves source code from nightly builds repository, into
+  setup latest <VERSION>
+                    Retrieves source code from nightly builds repository, into
                     the 'shared' directory.
-  get-source        Retrieves source code from Lanchpad repositories, into
+  setup sources <VERSION>
+                    Retrieves source code from Lanchpad repositories, into
                     the 'shared' directory.
-  update-source     Updates the sources with most recent versions.
+  setup <REPONAME> [<NAME> <LPURL> list]
+                    Builds the REPONAME shared directory containing a
+		    list of projects.
+  update <REPONAME>  Updates the sources with most recent versions.
+  version           Display script's version info.
   version-source    Displays the sources revision numbers.
   create NAME [PORT] [FIXED_OPTIONS]
                     Create an OpenERP 7 database and instance named "NAME" and
@@ -87,37 +91,6 @@ start. By default includes symlinks to the official addons sources in the
     ;;
 
 
-version)
-    echo "oetor version: $OEADMIN_VERSION"
-    echo "oetor home: $OEADMIN_HOME"
-    ;;
-
-
-get-dependencies)
-    #--------------------------------------------------
-    # Install Postgres and System dependencies
-    #  - tested with Ubuntu 12
-    #--------------------------------------------------
-    echo -e "\n---- Installing PostgreSQL ----"
-    sudo apt-get install postgresql
-
-    echo -e "\n---- Installing system packages ----"
-    yes | sudo apt-get install bzr bzrtools python-pip git
-
-    echo -e "\n---- Installing python packages ----"
-    yes | sudo apt-get install python-dateutil python-docutils python-feedparser \
-    python-gdata python-jinja2 python-ldap python-libxslt1 python-lxml python-mako \
-    python-mock python-openid python-psycopg2 python-psutil python-pybabel \
-    python-pychart python-pydot python-pyparsing python-reportlab python-simplejson \
-    python-tz python-unittest2 python-vatnumber python-vobject python-webdav \
-    python-werkzeug python-xlwt python-yaml python-zsi python-gdata
-
-    #echo -e "\n---- Install python libraries ----"
-    #sudo pip install gdata
-    echo -e "Dependencies installed."
-    ;;
-
-
 init)
     #--------------------------------------------------
     # Setup directories
@@ -136,7 +109,11 @@ init)
         echo -e "* Creating oetor home directory $OEADMIN_HOME ..."
         sudo mkdir -p $OEADMIN_HOME/shared
         sudo chown -R $OEADMIN_USER:root $OEADMIN_HOME
+    fi
+    if [ ! -d $OEADMIN_HOME/shared/oetor ] ; then
+        echo -e "* Cloning oetor to directory $OEADMIN_HOME/shared/oetor ..."
         sudo git clone https://github.com/dreispt/oetor $OEADMIN_HOME/shared/oetor
+	rm -f $OEADMIN_HOME/oetor
         ln -s $OEADMIN_HOME/shared/oetor/oetor $OEADMIN_HOME/oetor
     else
         echo -e "* Getting oetor latest version on directory $OEADMIN_HOME/shared/oetor ..."
@@ -145,116 +122,154 @@ init)
     ;;
 
 
-install)
-    if [ -z "$3" ] ; then
-        echo "Usage: oetor install ORIGIN VERSION"
-        exit 0
-    fi
-
-    ORIGIN="$2"
-    OEVERSION="$3"
-
-    case $ORIGIN in
+setup)
+   case $2 in
     
-        latest)
-            echo "Retrieving nightly build sources to $OEADMIN_HOME/shared/latest-$OEVERSION:"
-            echo -e "${color}* Downloading $OEVERSION nightly build ...${endColor}"
-            mkdir -p $OEADMIN_HOME/shared
-            wget --no-clobber http://nightly.openerp.com/$OEVERSION/nightly/src/openerp-$OEVERSION-latest.tar.gz -P $OEADMIN_HOME/shared
+   dependencies)
+        #--------------------------------------------------
+        # Install Postgres and System dependencies
+        #  - tested with Ubuntu 12
+        #--------------------------------------------------
+        echo -e "\n---- Installing PostgreSQL ----"
+        sudo apt-get install postgresql
 
-            echo -e "${color}* Uncompressing files ...${endColor}"
-            rm -rf $OEADMIN_HOME/shared/~tmp
-            mkdir -p $OEADMIN_HOME/shared/~tmp
-            tar xf $OEADMIN_HOME/shared/openerp-$OEVERSION-latest.tar.gz --directory=$OEADMIN_HOME/shared/~tmp
+        echo -e "\n---- Installing system packages ----"
+        yes | sudo apt-get install bzr bzrtools python-pip git
 
-            echo -e "${color}* Installing shared source files ...${endColor}"
-            rm -rf $OEADMIN_HOME/shared/latest-$OEVERSION/*
-            mkdir -p $OEADMIN_HOME/shared/latest-$OEVERSION
-            mv $OEADMIN_HOME/shared/~tmp/`ls $OEADMIN_HOME/shared/~tmp/`/* $OEADMIN_HOME/shared/latest-$OEVERSION/
-            ;;
-            
-        source)
-            OEADMIN_DIR="$OEADMIN_HOME/shared/$ORIGIN-$OEVERSION"
-            mkdir -p $OEADMIN_DIR
-            if [ ! -d $OEADMIN_DIR/addons ] ; then
-                echo -e "\n${color}Checkout of openerp-addons/$OEVERSION ...${endColor}"
-                rm -rf $OEADMIN_DIR/~tmp
-                bzr checkout --lightweight https://launchpad.net/~openerp/openobject-addons/$OEVERSION $OEADMIN_DIR/~tmp
-                mv $OEADMIN_DIR/~tmp $OEADMIN_DIR/addons
-            fi
-            if [ ! -d $OEADMIN_DIR/web ] ; then
-                echo -e "\n${color}Checkout of openerp-web/$OEVERSION ...${endColor}"
-                rm -rf $OEADMIN_DIR/~tmp
-                bzr checkout --lightweight https://launchpad.net/~openerp/openerp-web/$OEVERSION $OEADMIN_DIR/~tmp
-                mv $OEADMIN_DIR/~tmp $OEADMIN_DIR/web
-            fi
-            if [ ! -d $OEADMIN_DIR/server ] ; then
-                echo -e "\n${color}Checkout of openerp-server/$OEVERSION ...${endColor}"
-                rm -rf $OEADMIN_DIR/~tmp
-                bzr checkout --lightweight https://launchpad.net/~openerp/openobject-server/$OEVERSION $OEADMIN_DIR/~tmp
-                mv $OEADMIN_DIR/~tmp $OEADMIN_DIR/server
-            fi
-            echo -e "\nLaunchpad sources ready."
-            ;;
-        
-        *)
-            OEADMIN_DIR="$OEADMIN_HOME/shared/$ORIGIN"
-            if [ ! -d "$OEADMIN_DIR" ] ; then
-                echo -e "\n${color}Checkout of $OEVERSION to $ORIGIN ...${endColor}"
-                rm -rf $OEADMIN_HOME/shared/~tmp
-                bzr checkout --lightweight $OEVERSION $OEADMIN_HOME/shared/~tmp
-                mv $OEADMIN_HOME/shared/~tmp $OEADMIN_DIR
-            fi
-            echo -e "\nLaunchpad sources ready."
-            ;;
-        
+        echo -e "\n---- Installing python packages ----"
+        yes | sudo apt-get install python-dateutil python-docutils python-feedparser \
+        python-gdata python-jinja2 python-ldap python-libxslt1 python-lxml python-mako \
+        python-mock python-openid python-psycopg2 python-psutil python-pybabel \
+        python-pychart python-pydot python-pyparsing python-reportlab python-simplejson \
+        python-tz python-unittest2 python-vatnumber python-vobject python-webdav \
+        python-werkzeug python-xlwt python-yaml python-zsi python-gdata
+
+        #echo -e "\n---- Install python libraries ----"
+        #sudo pip install gdata
+        echo -e "Dependencies installed."
+        ;;
+
+    latest)
+	# TODO: move this to `update`; check if dir does not exist
+	# Get parameters
+	if [ -z "$3" ] ; then
+	    echo "Usage: oetor setup $2 <VERSION>"
+	    exit 0
+	fi
+	ORIGIN="$2"
+	OEVERSION="$3"
+
+	echo "Retrieving nightly build sources to $OEADMIN_HOME/shared/latest-$OEVERSION:"
+	echo -e "${color}* Downloading $OEVERSION nightly build ...${endColor}"
+	mkdir -p $OEADMIN_HOME/shared
+	wget --no-clobber http://nightly.openerp.com/$OEVERSION/nightly/src/openerp-$OEVERSION-latest.tar.gz -P $OEADMIN_HOME/shared
+
+	echo -e "${color}* Uncompressing files ...${endColor}"
+	rm -rf $OEADMIN_HOME/shared/~tmp
+	mkdir -p $OEADMIN_HOME/shared/~tmp
+	tar xf $OEADMIN_HOME/shared/openerp-$OEVERSION-latest.tar.gz --directory=$OEADMIN_HOME/shared/~tmp
+
+	echo -e "${color}* Installing shared source files ...${endColor}"
+	rm -rf $OEADMIN_HOME/shared/latest-$OEVERSION/*
+	mkdir -p $OEADMIN_HOME/shared/latest-$OEVERSION
+	mv $OEADMIN_HOME/shared/~tmp/`ls $OEADMIN_HOME/shared/~tmp/`/* $OEADMIN_HOME/shared/latest-$OEVERSION/
+	;;
+	
+    *)
+	# Get parameters and verify directoru does not exist
+	ORIGIN="$2"
+	OEADMIN_DIR="$OEADMIN_HOME/shared/$ORIGIN"
+
+	# Special case: install official sources
+        if [ "$ORIGIN" = "sources" ] ; then
+	    if [ -z "$3" ] ; then
+		echo "Usage: oetor setup $ORIGIN <VERSION>"
+		exit 0
+	    fi
+	    OEVERSION="$3"
+	    $0 setup sources-$OEVERSION server https://launchpad.net/~openerp/openobject-server/$OEVERSION addons https://launchpad.net/~openerp/openobject-addons/$OEVERSION web https://launchpad.net/~openerp/openerp-web/$OEVERSION
+
+	else
+	# General case: install the provided NAME URL list of sources
+	    echo "PARAMS: $*"
+	    mkdir -p $OEADMIN_DIR
+	    while [ "$2" ] ; 
+	    do
+		shift 2
+		NAME="$1"
+		URL="$2"
+	        if [ -d "$OEADMIN_DIR/$NAME" ] ; then
+		    echo "$OEADMIN_DIR/$NAME already exists: skipping ..."
+		else	
+		    echo -e "${color}Building '$NAME' with checkout from $URL ...${endColor}"
+		    rm -rf $OEADMIN_DIR/~tmp
+		    bzr checkout --lightweight $URL $OEADMIN_DIR/~tmp
+		    if [ "`ls $OEADMIN_DIR/~tmp`" ] ; then
+			echo -e "$NAME ready." 
+		        mv $OEADMIN_DIR/~tmp $OEADMIN_DIR/$NAME
+		    fi
+		fi
+	    done	
+	    echo -e "\All sources ready."
+	fi
+	;;
+    
     esac
-    
+    ;; 
+
 
 update)
-    #TODO review this
     #--------------------------------------------------
     # Update the sources downloaded with "get-source"
     #--------------------------------------------------
-    if [ -z "$3" ] ; then
-        echo "Usage: oetor update <SOURCE> [VERSION]"
-        exit 0
+    if [ -z "$2" ] ; then
+        echo "Usage: oetor update <REPO1> [<REPO2> ...]" 
+        exit 1
     fi
             
-    OESOURCE_DIR="$2"
-
-    OEADMIN_DIR=$OEADMIN_HOME/shared/$OESOURCE_DIR
-    echo -e "Updating openerp-addons"
-    bzr update $OEADMIN_DIR/addons
-    echo -e "* Updating openerp-web"
-    bzr update $OEADMIN_DIR/web
-    echo -e "* Updating openerp-server"
-    bzr update $OEADMIN_DIR/server
-    echo "Sources updated."
+    shift 1
+    while [ "$1" ] ; 
+    do
+	REPODIR="$OEADMIN_HOME/shared/$1"
+	if [ ! -d "$REPODIR" ] ; then
+	    echo "WARNING: $REPODIR does not exist."
+	else
+	   for DIRNAME in `ls $REPODIR`
+	   do
+	      echo -e "Updating $REPODIR/$DIRNAME..."
+	      bzr update $REPODIR/$DIRNAME
+	   done
+        fi
+        shift 1
+    done
+    # echo "Sources updated."
     ;;
 
 
-version-source)
-    #TODO review this
-    #-------------------------------------------------
-    # List version revision numbers for sources downloaded with "get-source"
-    #--------------------------------------------------
-    if [ "$2" ] ; then
-        OESOURCE_DIR="$2"
-    else
-        echo "Usage:
-oetor version-source <source-dirname>"
+version)
+    if [ -z "$2" ] ; then
+	echo "oetor version: $OEADMIN_VERSION"
+	echo "oetor home: $OEADMIN_HOME"
+        echo "Usage: oetor update <REPO1> [<REPO2> ...]" 
         exit 0
     fi
-
-    OEADMIN_DIR=$OEADMIN_HOME/shared/$OESOURCE_DIR
-    echo -e "* Shared sources revision numbers for $OESOURCE_DIR:"
-    echo -en "server\t"
-    bzr revno -q $OEADMIN_DIR/server
-    echo -en "addons\t"
-    bzr revno -q $OEADMIN_DIR/addons
-    echo -en "web\t"
-    bzr revno -q $OEADMIN_DIR/web
+            
+   shift 1
+    while [ "$1" ] ; 
+    do
+	REPODIR="$OEADMIN_HOME/shared/$1"
+	if [ ! -d "$REPODIR" ] ; then
+	    echo "WARNING: $REPODIR does not exist."
+	else
+	    echo -e "Source revision numbers for $REPODIR:"
+	    for DIRNAME in `ls $REPODIR`
+	    do
+		echo -en "$DIRNAME\t"
+		bzr revno -q $REPODIR/$DIRNAME
+	    done
+        fi
+        shift 1
+    done
     ;;
 
 
@@ -263,7 +278,7 @@ fake-smtp)
     ;;
 
 
-create-branch)
+create-add)
     #--------------------------------------------------
     # Create a new server Instance and setup a Branch
     # It's meant to be used through `create` and `branch`, but can also be used directly
@@ -275,8 +290,8 @@ create-branch)
 #oetor create-branch <INSTANCE> <BASE> --no-branch [PORT] [FIXED_PARAMS]"
 #
         echo "Usage:
-oetor create-branch <INSTANCE> <BRANCHNAME> <MPURL> <BASEDIR> [PORT] [FIXED_PARAMS]
-oetor create-branch <INSTANCE> --no-branch <BASEDIR> [PORT] [FIXED_PARAMS]"
+oetor create-add <INSTANCE> <BRANCHNAME> <MPURL> <BASEDIR> [PORT] [FIXED_PARAMS]
+oetor create-add <INSTANCE> --no-branch <BASEDIR> [PORT] [FIXED_PARAMS]"
         exit 0
     fi
 
@@ -430,21 +445,20 @@ create)
         INSTANCE="$2"
         OEBASE="$3"
         shift 3
-        $0 branch $OEVERSION $INSTANCE --no-branch $OEBASE $*
+        $0 create-add $OEVERSION $INSTANCE --no-branch $OEBASE $*
     fi
     ;;
     
     
-branch)
+addto)
     #--------------------------------------------------
     # Create a new brench inside an instance:
-    #   oetor branch INSTANCE <BRANCHNAME> <MPURL> [PORT] [FIXED_PARAMS]
     #--------------------------------------------------
 
     # Check OpenERP version parameter
     if [ -z "$4" ] ; then
-        echo "Usage:   oetor branch INSTANCE BRANCHNAME BRANCHURL [PORT] [FIXED_PARAMS]"
-        echo "Example: oetor branch myserver7 myproject lp:myproject/7.0"
+        echo "Usage:   oetor addto INSTANCE BRANCHNAME BRANCHURL [PORT] [FIXED_PARAMS]"
+        echo "Example: oetor addto myserver7 myproject lp:myproject/7.0"
         exit 0
     else
         # Get parameters
@@ -452,16 +466,16 @@ branch)
         BRANCHNAME="$3"
         BRANCHURL="$4"
         shift 4
-        $0 create-branch $INSTANCE $BRANCHNAME $BRANCHURL --no-base $*
+        $0 create-add $INSTANCE $BRANCHNAME $BRANCHURL --no-base $*
     fi
     ;;
     
     
-branch-install)
+install-all)
     #--------------------------------------------------
     if [ -z "$4" ] ; then
-        echo "usage: oetor branch-install INSTANCE BRANCHNAME BRANCHURL [PORT] [FIXED_PARAMS]"
-        echo "Retrieve a branch from Launchpad and install all its modules."
+        echo "usage: oetor install INSTANCE BRANCHNAME"
+        echo "Install all modules for an instance branch."
         exit 0
     fi
     #--------------------------------------------------
@@ -469,11 +483,6 @@ branch-install)
     # Get parameters
     INSTANCE="$2"
     BRANCHNAME="$3"
-    BRANCHURL="$4"
-    
-    # branch
-    shift 1
-    $0 branch $*
     
     echo -e "Branch contents:"
     ls "$OEADMIN_HOME/$INSTANCE/$BRANCHNAME"
@@ -514,12 +523,14 @@ start)
 
 
 test)
-    OEVERSION=$2
-    INSTANCE=$3
-    dropdb $INSTANCE-TEST-$OEVERSION
-    createdb $INSTANCE-TEST-$OEVERSION
-    shift 3
-    $OEADMIN_HOME/$OEVERSION/$INSTANCE/start --test-enable --stop-after-init $*
+    # Get parameters
+    INSTANCE="$2"
+    BRANCH_NAME="$3"
+    DBNAME="$BRANCH_NAME-$INSTANCE-TEST"
+    dropdb $DBNAME
+    createdb $DBNAME
+    shift 1 
+    $0 start $* -d $DBNAME --test-enable --stop-after-init
     ;;
 
 
