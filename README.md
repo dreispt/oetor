@@ -34,42 +34,43 @@ The `auto-install` command will install PostgreSQL and other system dependencies
 
 
 This the directory structure used:
-                               ### RUN:  `oetor init` (unless the install.sh was used)
-    /opt/openerp               # HOME directory
-      |- oetor                 # oetor script (symlinked to ./src/oetor/oetor)
-      |- /src                  # shared SOURCE REPOSITORY
-      |    |- /oetor             # oetor script source (cloned form GitHub)
-      |    |- /nightly-7.0       # a SOURCE DIR (from nightly builds)
-      |    |    |- /server
-      |    |                     ## Run:  `oetor setup sources 7.0`
-      |    |- /sources-7.0       # a source dir (Launchpad checkout)
-      |    |    |- /server       #    (/repos contains addons and web)
-      |    |    |- /repos
-      |    |                     ### RUN:  `oetor setup sources trunk`
-      |    |- /sources-trunk     # ...another version source dir
-      |    |    |- ...
-      |    ...                   # ...add other shared sources as needed
-      |                          #    see `oetor setup --help`
-      |
-      |                        ### RUN:  `oetor create instance1 sources-7.0` 
-      |- /instance1            # an OpenERP server instance
-      |    |- openerp-server.conf 
-      |    |- /src               # server sources: symlink dir in /opt/openerp/src
-      |    |- /common            # specific sources: add specific sources
-      |    |                     # common all instance versions)
-      |    |- normbot            # script to help operate the vanilla server 
-      |    |                     # (addons_path=./src/repos/*,./common/*)
-      |    |
-      |    |                     ### RUN:  `oetor addto instance1 branchx lp:branchx`
-      |    |- /branchx           # instance source code (version x)
-      |    |- normbot-branchx    # server to work on a specific branch/version
-      |    |                     # (addons_path=./branchx,./src/repos/*,./common/*)
-      |    |
-      |    ...                 # ...add as many branches as needed
-      |                        # for help run:  `oetor addto --help`
-      |
-      ...                      # ...create as many instances as you need
-                               # for help run:  `oetor create --help`
+
+                                   ### RUN:  `oetor init` (unless the install.sh was used)
+        /opt/openerp               # HOME directory
+          |- oetor                 # oetor script (symlinked to ./src/oetor/oetor)
+          |- /src                  # shared SOURCE REPOSITORY
+          |    |- /oetor             # oetor script source (cloned form GitHub)
+          |    |- /nightly-7.0       # a SOURCE DIR (from nightly builds)
+          |    |    |- /server
+          |    |                     ## Run:  `oetor setup sources 7.0`
+          |    |- /sources-7.0       # a source dir (Launchpad checkout)
+          |    |    |- /server       #    (/repos contains addons and web)
+          |    |    |- /repos
+          |    |                     ### RUN:  `oetor setup sources trunk`
+          |    |- /sources-trunk     # ...another version source dir
+          |    |    |- ...
+          |    ...                   # ...add other shared sources as needed
+          |                          #    see `oetor setup --help`
+          |
+          |                        ### RUN:  `oetor create instance1 sources-7.0` 
+          |- /instance1            # an OpenERP server instance
+          |    |- openerp-server.conf 
+          |    |- /src               # server sources: symlink dir in /opt/openerp/src
+          |    |- /common            # specific sources: add specific sources
+          |    |                     # common all instance versions)
+          |    |- normbot            # script to help operate the vanilla server 
+          |    |                     # (addons_path=./src/repos/*,./common/*)
+          |    |
+          |    |                     ### RUN:  `oetor addto instance1 branchx lp:branchx`
+          |    |- /branchx           # instance source code (version x)
+          |    |- normbot-branchx    # server to work on a specific branch/version
+          |    |                     # (addons_path=./branchx,./src/repos/*,./common/*)
+          |    |
+          |    ...                 # ...add as many branches as needed
+          |                        # for help run:  `oetor addto --help`
+          |
+          ...                      # ...create as many instances as you need
+                                   # for help run:  `oetor create --help`
 
 
 
