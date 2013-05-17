@@ -12,7 +12,7 @@ Main features:
 * Easily list running instances and respective listening ports.
 
 
-Getting the code
+Installing oetor
 ----------------
 
 To install `oetor` in your Ubuntu system:
@@ -26,42 +26,45 @@ Quickstart full installation
 
 For an easy and quick start run:
 
-    ./oetor auto-install
+    /opt/openerp/oetor auto-install
 
-The `auto-install` command will install PostgreSQL and other system dependencies, setup the `/opt/oerp/7.0` home, download v7 sources and configure an initial `demo` instance. It can be started with:
+This will install all system dependencies needed, including a PostgreSQL server, download v7 latest nightly build and create a `server1` OpenERP instance. It can be started with:
 
-    /opt/openerp/demo/norm-bot start
+    /opt/openerp/server1/normbot start
 
 
-This the directory structure used:
+What's in the box
+-----------------
 
-                                   ### RUN:  `oetor init` (unless the install.sh was used)
+Here is how source code directories and server instances are organized:
+
+                                   ### Run install.sh or run `oetor init`
         /opt/openerp               # HOME directory
           |- oetor                 # oetor script (symlinked to ./src/oetor/oetor)
           |- /src                  # shared SOURCE REPOSITORY
           |    |- /oetor             # oetor script source (cloned form GitHub)
-          |    |- /nightly-7.0       # a SOURCE DIR (from nightly builds)
+          |    |                     ###$ `oetor setup nightly 7.0`
+          |    |- /nightly-7.0       # a SOURCE DIR, from nightly builds
           |    |    |- /server
-          |    |                     ## Run:  `oetor setup sources 7.0`
+          |    |                     ###$ `oetor setup sources 7.0`
           |    |- /sources-7.0       # a source dir (Launchpad checkout)
           |    |    |- /server       #    (/repos contains addons and web)
           |    |    |- /repos
-          |    |                     ### RUN:  `oetor setup sources trunk`
+          |    |                     ###$ `oetor setup sources trunk`
           |    |- /sources-trunk     # ...another version source dir
           |    |    |- ...
           |    ...                   # ...add other shared sources as needed
-          |                          #    see `oetor setup --help`
+          |                          ###$ `oetor setup --help`
           |
-          |                        ### RUN:  `oetor create instance1 sources-7.0` 
-          |- /instance1            # an OpenERP server instance
+          |                        ###$ `oetor create server1 sources-7.0` 
+          |- /server1                # an OpenERP server instance
           |    |- openerp-server.conf 
-          |    |- /src               # server sources: symlink dir in /opt/openerp/src
-          |    |- /common            # specific sources: add specific sources
-          |    |                     # common all instance versions)
+          |    |- /src               # server sources: symlinked to dir in /opt/openerp/src
+          |    |- /common            # instance's specific sourcesi common to all branches
           |    |- normbot            # script to help operate the vanilla server 
           |    |                     # (addons_path=./src/repos/*,./common/*)
           |    |
-          |    |                     ### RUN:  `oetor addto instance1 branchx lp:branchx`
+          |    |                     ### RUN:  `oetor addto server1 branchx lp:branchx`
           |    |- /branchx           # instance source code (version x)
           |    |- normbot-branchx    # server to work on a specific branch/version
           |    |                     # (addons_path=./branchx,./src/repos/*,./common/*)
@@ -73,16 +76,15 @@ This the directory structure used:
                                    # for help run:  `oetor create --help`
 
 
-
 Step-by-step installation
 -------------------------
 
 Instead of using the auto-install, the same result can be achieved using the following commands:
   
-    ./oetor setup dependencies        # Install system dependencies
-    ./oetor setup sources 7.0         # Download (v7) sources from Launchpad
-    ./oetor create demo sources-7.0   # Create demo instance (on port 8069)
-    ./oetor start demo                # Start a demo instance server
+    ./oetor setup dependencies         # Install system dependencies
+    ./oetor setup sources 7.0          # Download (v7) sources from Launchpad
+    ./oetor create erver1 sources-7.0  # Create demo instance (on port 8069)
+    ./oetor start demo                 # Start a demo instance server
 
 
 More commands
@@ -91,11 +93,11 @@ More commands
 By default, `oetor` will install itself in `/opt/openerp`. Try:
 
     cd /opt/openerp                 # Go to home directory
-    ./oetor                         # Display basic usage help
-    ./oetor setup update sources    # Update sources to latest Launchpad versions
-    ./oetor version sources         # Display source revision numbers
+    ./oetor --help                  # Display usage help
+    ./oetor update sources-7.0      # Update sources to latest Launchpad versions
+    ./oetor version sources-7.0     # Display source revision numbers
     ./oetor create test 8070        # Create test instance on port 8070
-    test/start -i crm --debug       # Start test in debug mode and install crm module
+    test/normbot -i crm --debug     # Start test in debug mode and install crm module
     
 
 Anatomy of a server instance
@@ -113,11 +115,16 @@ The directory contains:
 * The contained directories are automatically added to the `addons_path` upon server start. By default these are symlinked to the official addons sources in the `shared` directory. 
 
 
+Features
+----------
+
+* command to run tests on throw-away databases
+
+
 To-do list
 ----------
 
-* command to run tests on throw-away databases [DONE]
-* command to list running instances (`start`already does a gob job when you `ps aux|grep openerp`)
+* command to list running instances (`start`already does a good job with: ps aux|grep openerp`)
 * command to list databases
 * commands to start in background, see instances running, and stop instances
 * command to set instance to autostart on boot

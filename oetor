@@ -9,7 +9,7 @@
 OEADMIN_VERSION="0.3b"
 OEADMIN_USER="`whoami`"
 OEADMIN_HOME="/opt/openerp"
-OEVERSION="7.0"
+#OEVERSION="7.0"
 color='\e[1;34m'
 endColor='\e[0m'
 
@@ -34,7 +34,7 @@ fi
 
 case "$1" in
 
-help)
+--help)
     echo "usage: oetor <command> [<args>]
 OpenERP-inator, a tool to manage and test multiple OpenERP server instances.
 https://github.com/dreispt/oetor
@@ -107,17 +107,17 @@ init)
 
     if [ ! -d $OEADMIN_HOME ] ; then
         echo -e "* Creating oetor home directory $OEADMIN_HOME ..."
-        sudo mkdir -p $OEADMIN_HOME/shared
+        sudo mkdir -p $OEADMIN_HOME/src
         sudo chown -R $OEADMIN_USER:root $OEADMIN_HOME
     fi
-    if [ ! -d $OEADMIN_HOME/shared/oetor ] ; then
-        echo -e "* Cloning oetor to directory $OEADMIN_HOME/shared/oetor ..."
-        sudo git clone https://github.com/dreispt/oetor $OEADMIN_HOME/shared/oetor
+    if [ ! -d $OEADMIN_HOME/src/oetor ] ; then
+        echo -e "* Cloning oetor to directory $OEADMIN_HOME/src/oetor ..."
+        sudo git clone https://github.com/dreispt/oetor $OEADMIN_HOME/src/oetor
 	rm -f $OEADMIN_HOME/oetor
-        ln -s $OEADMIN_HOME/shared/oetor/oetor $OEADMIN_HOME/oetor
+        ln -s $OEADMIN_HOME/src/oetor/oetor $OEADMIN_HOME/oetor
     else
-        echo -e "* Getting oetor latest version on directory $OEADMIN_HOME/shared/oetor ..."
-        git --git-dir=$OEADMIN_HOME/shared/oetor pull
+        echo -e "* Getting oetor latest version on directory $OEADMIN_HOME/src/oetor ..."
+        git --git-dir=$OEADMIN_HOME/src/oetor pull
     fi
     ;;
 
@@ -125,6 +125,10 @@ init)
 setup)
    case $2 in
     
+   --help)
+        #TODO ...
+        ;;
+
    dependencies)
         #--------------------------------------------------
         # Install Postgres and System dependencies
@@ -149,7 +153,7 @@ setup)
         echo -e "Dependencies installed."
         ;;
 
-    latest)
+    nightly)
 	# TODO: move this to `update`; check if dir does not exist
 	# Get parameters
 	if [ -z "$3" ] ; then
@@ -161,24 +165,24 @@ setup)
 
 	echo "Retrieving nightly build sources to $OEADMIN_HOME/shared/latest-$OEVERSION:"
 	echo -e "${color}* Downloading $OEVERSION nightly build ...${endColor}"
-	mkdir -p $OEADMIN_HOME/shared
-	wget --no-clobber http://nightly.openerp.com/$OEVERSION/nightly/src/openerp-$OEVERSION-latest.tar.gz -P $OEADMIN_HOME/shared
+	mkdir -p $OEADMIN_HOME/src
+	wget --no-clobber http://nightly.openerp.com/$OEVERSION/nightly/src/openerp-$OEVERSION-latest.tar.gz -P $OEADMIN_HOME/src
 
 	echo -e "${color}* Uncompressing files ...${endColor}"
-	rm -rf $OEADMIN_HOME/shared/~tmp
-	mkdir -p $OEADMIN_HOME/shared/~tmp
-	tar xf $OEADMIN_HOME/shared/openerp-$OEVERSION-latest.tar.gz --directory=$OEADMIN_HOME/shared/~tmp
+	rm -rf $OEADMIN_HOME/src/~tmp
+	mkdir -p $OEADMIN_HOME/src/~tmp
+	tar xf $OEADMIN_HOME/src/openerp-$OEVERSION-latest.tar.gz --directory=$OEADMIN_HOME/src/~tmp
 
 	echo -e "${color}* Installing shared source files ...${endColor}"
-	rm -rf $OEADMIN_HOME/shared/latest-$OEVERSION/*
-	mkdir -p $OEADMIN_HOME/shared/latest-$OEVERSION
-	mv $OEADMIN_HOME/shared/~tmp/`ls $OEADMIN_HOME/shared/~tmp/`/* $OEADMIN_HOME/shared/latest-$OEVERSION/
+	rm -rf $OEADMIN_HOME/src/nightly-$OEVERSION/*
+	mkdir -p $OEADMIN_HOME/src/nightly-$OEVERSION
+	mv $OEADMIN_HOME/src/~tmp/`ls $OEADMIN_HOME/shared/~tmp/`/* $OEADMIN_HOME/src/nightly-$OEVERSION/
 	;;
 	
     *)
 	# Get parameters and verify directoru does not exist
 	ORIGIN="$2"
-	OEADMIN_DIR="$OEADMIN_HOME/shared/$ORIGIN"
+	OEADMIN_DIR="$OEADMIN_HOME/src/$ORIGIN"
 
 	# Special case: install official sources
         if [ "$ORIGIN" = "sources" ] ; then
@@ -191,22 +195,28 @@ setup)
 
 	else
 	# General case: install the provided NAME URL list of sources
-	    echo "PARAMS: $*"
-	    mkdir -p $OEADMIN_DIR
+	    mkdir -p "$OEADMIN_HOME/src/$ORIGIN/repos"
+            shift 1
 	    while [ "$2" ] ; 
 	    do
-		shift 2
-		NAME="$1"
-		URL="$2"
-	        if [ -d "$OEADMIN_DIR/$NAME" ] ; then
-		    echo "$OEADMIN_DIR/$NAME already exists: skipping ..."
+               NAME="$1"
+               URL="$2"
+               shift 2
+               # Sources stores inside /repos, except for /server
+               if [ "$NAME" = "server" ] ; 
+	            OE_SRC_DIR="$OEADMIN_HOME/src/$ORIGIN"
+                else
+	            OE_SRC_DIR="$OEADMIN_HOME/src/$ORIGIN/repos"
+                fi
+	        if [ -d "$OE_SRV_DIR/$NAME" ] ; then
+		    echo "$OE_SRV_DIR/$NAME already exists: skipping ..."
 		else	
 		    echo -e "${color}Building '$NAME' with checkout from $URL ...${endColor}"
-		    rm -rf $OEADMIN_DIR/~tmp
-		    bzr checkout --lightweight $URL $OEADMIN_DIR/~tmp
-		    if [ "`ls $OEADMIN_DIR/~tmp`" ] ; then
+		    rm -rf $OE_SRV_DIR/~tmp
+		    bzr checkout --lightweight $URL $OE_SRV_DIR/~tmp
+		    if [ "`ls $OE_SRV_DIR/~tmp`" ] ; then
 			echo -e "$NAME ready." 
-		        mv $OEADMIN_DIR/~tmp $OEADMIN_DIR/$NAME
+		        mv $OE_SRV_DIR/~tmp $OE_SRV_DIR/$NAME
 		    fi
 		fi
 	    done	
@@ -230,15 +240,24 @@ update)
     shift 1
     while [ "$1" ] ; 
     do
-	REPODIR="$OEADMIN_HOME/shared/$1"
+	REPODIR="$OEADMIN_HOME/src/$1"
 	if [ ! -d "$REPODIR" ] ; then
 	    echo "WARNING: $REPODIR does not exist."
 	else
-	   for DIRNAME in `ls $REPODIR`
+
+           # update server
+	   if [ -d "$REPODIR/server" ] ; then
+ 	      echo -e "Updating $REPODIR/server..."
+	      bzr update $REPODIR/server
+           fi
+
+           #update repos
+	   for DIRNAME in `ls $REPODIR/repos`
 	   do
 	      echo -e "Updating $REPODIR/$DIRNAME..."
 	      bzr update $REPODIR/$DIRNAME
 	   done
+
         fi
         shift 1
     done
@@ -254,15 +273,18 @@ version)
         exit 0
     fi
             
-   shift 1
+    shift 1
     while [ "$1" ] ; 
     do
-	REPODIR="$OEADMIN_HOME/shared/$1"
+	REPODIR="$OEADMIN_HOME/src/$1"
 	if [ ! -d "$REPODIR" ] ; then
 	    echo "WARNING: $REPODIR does not exist."
 	else
 	    echo -e "Source revision numbers for $REPODIR:"
-	    for DIRNAME in `ls $REPODIR`
+            echo -en "server\t"
+            bzr revno -q $REPODIR/server
+
+            for DIRNAME in `ls $REPODIR`
 	    do
 		echo -en "$DIRNAME\t"
 		bzr revno -q $REPODIR/$DIRNAME
@@ -286,9 +308,6 @@ create-add)
 
     # Check minimun parameters supplied
     if [ -z "$4" ] ; then
-#oetor create-branch <INSTANCE> <BASE> <MPURL> <BRANCHNAME> [PORT] [FIXED_PARAMS]
-#oetor create-branch <INSTANCE> <BASE> --no-branch [PORT] [FIXED_PARAMS]"
-#
         echo "Usage:
 oetor create-add <INSTANCE> <BRANCHNAME> <MPURL> <BASEDIR> [PORT] [FIXED_PARAMS]
 oetor create-add <INSTANCE> --no-branch <BASEDIR> [PORT] [FIXED_PARAMS]"
@@ -314,9 +333,9 @@ oetor create-add <INSTANCE> --no-branch <BASEDIR> [PORT] [FIXED_PARAMS]"
     if [ "$3" = "--no-base" ] ; then
         OEBASE=""
     fi
-    if [ ! -d "$OEADMIN_HOME/shared/$OEBASE" ] ; then
-        echo "STOPPING: HOME/shared/$OEBASE does not exist."
-        exit 0
+    if [ ! -d "$OEADMIN_HOME/src/$OEBASE" ] ; then
+        echo "STOPPING: HOME/src/$OEBASE does not exist."
+        exit 1
     fi
 
     # Get optional port number    
@@ -347,9 +366,9 @@ oetor create-add <INSTANCE> --no-branch <BASEDIR> [PORT] [FIXED_PARAMS]"
 
     # Create symlink to server source
     if [ ! -z "$OEBASE" ] ; then
-        if [ ! -d "$OEADMIN_DIR/base" ] ; then
+        if [ ! -d "$OEADMIN_DIR/src" ] ; then
             echo "* Linking to server ..."
-            ln -s "$OEADMIN_HOME/shared/$OEBASE" "$OEADMIN_DIR/base"
+            ln -s "$OEADMIN_HOME/src/$OEBASE" "$OEADMIN_DIR/src"
         fi
     fi
 
@@ -365,7 +384,7 @@ oetor create-add <INSTANCE> --no-branch <BASEDIR> [PORT] [FIXED_PARAMS]"
 
     if [ ! -f "$OEADMIN_DIR/openerp-server.conf" ] ; then
         echo "* Creating instance config file ..."
-        # TODO: better conf file (?)
+        #TODO: better conf file (?)
         echo "[options]
 ; This is the password that allows database operations:
 ; admin_passwd = admin
@@ -379,9 +398,9 @@ log_handler = ['werkzeug:CRITICAL']
     
     shift 3
     
-    if [ ! -f "$OEADMIN_DIR/norm-base" ] ; then
-        echo "$OEADMIN_HOME/oetor $INSTANCE --no-branch $PORT $*" > "$OEADMIN_DIR/norm-base"
-        chmod ug+x "$OEADMIN_DIR/norm-base"
+    if [ ! -f "$OEADMIN_DIR/normbot" ] ; then
+        echo "$OEADMIN_HOME/oetor $INSTANCE --no-branch $PORT $*" > "$OEADMIN_DIR/normbot"
+        chmod ug+x "$OEADMIN_DIR/normbot"
     fi
 
     #--------------------------------------------------
@@ -389,14 +408,14 @@ log_handler = ['werkzeug:CRITICAL']
     #--------------------------------------------------
     echo "
 Instance \"$INSTANCE\" created configured for port $PORT.
-To start it type: $OEADMIN_DIR/norm-base start
+To start it type: $OEADMIN_DIR/normbot start
 To use it browse: http://`hostname`:$PORT
 "
 
     #--------------------------------------------------
     # - create branch
     #--------------------------------------------------
-    if [ ! -z "$MPURL"] ; then
+    if [ "$MPURL" ] ; then
 
         # Get MP sources
         if [ ! -d "$OEADMIN_DIR/$BRANCH_NAME" ] ; then
@@ -411,10 +430,9 @@ To use it browse: http://`hostname`:$PORT
         fi
 
         # create norm script
-        if [ ! -f "$OEADMIN_DIR/norm-$BRANCH_NAME" ] ; then
-            # TODO: IMPORTANT - need to pass BRANCH_NAME to oetor!
-            echo "$OEADMIN_HOME/oetor $INSTANCE $BRANCH_NAME $PORT $*" > $OEADMIN_DIR/norm-$BRANCH_NAME
-            chmod ug+x "$OEADMIN_DIR/$INSTANCE/norm-$BRANCH_NAME"
+        if [ ! -f "$OEADMIN_DIR/normbot-$BRANCH_NAME" ] ; then
+            echo "$OEADMIN_HOME/oetor $INSTANCE $BRANCH_NAME $PORT $*" > $OEADMIN_DIR/normbot-$BRANCH_NAME
+            chmod ug+x "$OEADMIN_DIR/$INSTANCE/normbot-$BRANCH_NAME"
         fi
 
         #--------------------------------------------------
@@ -422,10 +440,9 @@ To use it browse: http://`hostname`:$PORT
         #--------------------------------------------------
         echo "
 Branch $BRANCH_NAME ready.
-To control it:    $OEADMIN_DIR/norm-$BRANCH_NAME
+To control it type:  $OEADMIN_DIR/normbot-$BRANCH_NAME
 "
     fi
-    
     ;;
 
 
@@ -452,10 +469,10 @@ create)
     
 addto)
     #--------------------------------------------------
-    # Create a new brench inside an instance:
+    # Create a new branch inside an instance:
     #--------------------------------------------------
 
-    # Check OpenERP version parameter
+    # Check parameters
     if [ -z "$4" ] ; then
         echo "Usage:   oetor addto INSTANCE BRANCHNAME BRANCHURL [PORT] [FIXED_PARAMS]"
         echo "Example: oetor addto myserver7 myproject lp:myproject/7.0"
@@ -517,8 +534,10 @@ start)
     fi
     
     shift 3
+    # TODO: FIX COMMAS FROM EMPTY DIRES
+    COMMON="`ls -dm $OEADMIN_HOME/src/repos/*/|tr -d '[:space:]'`"
     ADDONS="`ls -dm $OEADMIN_HOME/$INSTANCE/common/*/|tr -d '[:space:]'`"
-    $OEADMIN_HOME/$INSTANCE/base/server/openerp-server --xmlrpc-port=$PORT -d $BRANCH_NAME-$INSTANCE $* --addons-path="$OEADMIN_HOME/$INSTANCE/$BRANCH_NAME,$ADDONS" --config="$OEADMIN_HOME/$INSTANCE/openerp-server.conf" $*
+    $OEADMIN_HOME/$INSTANCE/base/server/openerp-server --xmlrpc-port=$PORT -d $BRANCH_NAME-$INSTANCE $* --addons-path="$OEADMIN_HOME/$INSTANCE/$BRANCH_NAME,$COMMON,$ADDONS" --config="$OEADMIN_HOME/$INSTANCE/openerp-server.conf" $*
         ;;
 
 
@@ -531,21 +550,22 @@ test)
     createdb $DBNAME
     shift 1 
     $0 start $* -d $DBNAME --test-enable --stop-after-init
+    # TODO: fix double params
     ;;
 
 
 remove)
     echo "Sorry, the self-destruct button is currently disabled. To go ahead run:
-rm -r $OEADMIN_HOME/VERSION/INSTANCE
+rm -r $OEADMIN_HOME/INSTANCE
 dropdb INSTANCE-VERSION"
     ;;
 
 
 auto-install)
-    $0 get-dependencies
     $0 init
-    $0 install source 7.0
-    $0 create demo source-7.0
+    $0 setup dependencies
+    $0 setup sources 7.0
+    $0 create server1 sources-7.0
     ;;
 
 esac
