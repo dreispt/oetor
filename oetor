@@ -127,6 +127,7 @@ setup)
     
    --help)
         #TODO ...
+        echo "Usage of oerot setup:"
         ;;
 
    dependencies)
@@ -163,10 +164,15 @@ setup)
 	ORIGIN="$2"
 	OEVERSION="$3"
 
+        if [ -d "$OEADMIN_HOME/src/nightly-$OEVERSION" ] ; then
+            echo "Directory $OEADMIN_HOME/src/nightly-$OEVERSION already exists. Use 'update' instead."
+            exit 1
+        fi
+
 	echo "Retrieving nightly build sources to $OEADMIN_HOME/shared/latest-$OEVERSION:"
 	echo -e "${color}* Downloading $OEVERSION nightly build ...${endColor}"
 	mkdir -p $OEADMIN_HOME/src
-	wget --no-clobber http://nightly.openerp.com/$OEVERSION/nightly/src/openerp-$OEVERSION-latest.tar.gz -P $OEADMIN_HOME/src
+	#wget --no-clobber http://nightly.openerp.com/$OEVERSION/nightly/src/openerp-$OEVERSION-latest.tar.gz -P $OEADMIN_HOME/src
 
 	echo -e "${color}* Uncompressing files ...${endColor}"
 	rm -rf $OEADMIN_HOME/src/~tmp
@@ -175,8 +181,8 @@ setup)
 
 	echo -e "${color}* Installing shared source files ...${endColor}"
 	rm -rf $OEADMIN_HOME/src/nightly-$OEVERSION/*
-	mkdir -p $OEADMIN_HOME/src/nightly-$OEVERSION
-	mv $OEADMIN_HOME/src/~tmp/`ls $OEADMIN_HOME/shared/~tmp/`/* $OEADMIN_HOME/src/nightly-$OEVERSION/
+	mkdir -p $OEADMIN_HOME/src/nightly-$OEVERSION/server
+	mv $OEADMIN_HOME/src/~tmp/`ls $OEADMIN_HOME/src/~tmp/`/* $OEADMIN_HOME/src/nightly-$OEVERSION/server
 	;;
 	
     *)
@@ -184,43 +190,41 @@ setup)
 	ORIGIN="$2"
 	OEADMIN_DIR="$OEADMIN_HOME/src/$ORIGIN"
 
-	# Special case: install official sources
-        if [ "$ORIGIN" = "sources" ] ; then
-	    if [ -z "$3" ] ; then
+	if [ -z "$3" ] ; then
 		echo "Usage: oetor setup $ORIGIN <VERSION>"
 		exit 0
-	    fi
+	fi
+
+        # Special case: install official sources
+        if [ "$ORIGIN" = "sources" ] ; then
+
 	    OEVERSION="$3"
 	    $0 setup sources-$OEVERSION server https://launchpad.net/~openerp/openobject-server/$OEVERSION addons https://launchpad.net/~openerp/openobject-addons/$OEVERSION web https://launchpad.net/~openerp/openerp-web/$OEVERSION
 
 	else
 	# General case: install the provided NAME URL list of sources
 	    mkdir -p "$OEADMIN_HOME/src/$ORIGIN/repos"
-            shift 1
-	    while [ "$2" ] ; 
-	    do
+            shift 2
+	    while [ "$2" ] ; do
                NAME="$1"
                URL="$2"
                shift 2
                # Sources stores inside /repos, except for /server
-               if [ "$NAME" = "server" ] ; 
-	            OE_SRC_DIR="$OEADMIN_HOME/src/$ORIGIN"
-                else
-	            OE_SRC_DIR="$OEADMIN_HOME/src/$ORIGIN/repos"
-                fi
-	        if [ -d "$OE_SRV_DIR/$NAME" ] ; then
-		    echo "$OE_SRV_DIR/$NAME already exists: skipping ..."
-		else	
-		    echo -e "${color}Building '$NAME' with checkout from $URL ...${endColor}"
-		    rm -rf $OE_SRV_DIR/~tmp
-		    bzr checkout --lightweight $URL $OE_SRV_DIR/~tmp
-		    if [ "`ls $OE_SRV_DIR/~tmp`" ] ; then
-			echo -e "$NAME ready." 
-		        mv $OE_SRV_DIR/~tmp $OE_SRV_DIR/$NAME
-		    fi
-		fi
+	       OE_SRC_DIR="$OEADMIN_HOME/src/$ORIGIN"
+	       if [ -d "$OE_SRC_DIR/$NAME" ] ; then
+                   echo "$OE_SRC_DIR/$NAME already exists: skipping ..."
+	       else	
+
+		   echo -e "${color}Building '$OE_SRC_DIR/$NAME' with checkout from $URL ...${endColor}"
+		   rm -rf $OE_SRC_DIR/~tmp
+		   bzr checkout --lightweight $URL $OE_SRC_DIR/~tmp
+		   #if [ "`ls $OE_SRC_DIR/~tmp`" ] ; then
+	               echo -e "$NAME ready." 
+		       mv $OE_SRC_DIR/~tmp $OE_SRC_DIR/$NAME
+		   #fi
+	       fi
 	    done	
-	    echo -e "\All sources ready."
+	    echo -e "All sources ready."
 	fi
 	;;
     
@@ -245,14 +249,7 @@ update)
 	    echo "WARNING: $REPODIR does not exist."
 	else
 
-           # update server
-	   if [ -d "$REPODIR/server" ] ; then
- 	      echo -e "Updating $REPODIR/server..."
-	      bzr update $REPODIR/server
-           fi
-
-           #update repos
-	   for DIRNAME in `ls $REPODIR/repos`
+	   for DIRNAME in `ls $REPODIR`
 	   do
 	      echo -e "Updating $REPODIR/$DIRNAME..."
 	      bzr update $REPODIR/$DIRNAME
@@ -281,9 +278,6 @@ version)
 	    echo "WARNING: $REPODIR does not exist."
 	else
 	    echo -e "Source revision numbers for $REPODIR:"
-            echo -en "server\t"
-            bzr revno -q $REPODIR/server
-
             for DIRNAME in `ls $REPODIR`
 	    do
 		echo -en "$DIRNAME\t"
@@ -373,7 +367,7 @@ oetor create-add <INSTANCE> --no-branch <BASEDIR> [PORT] [FIXED_PARAMS]"
     fi
 
     #create database
-    if [ ! `psql $INSTANCE -c "select 1"` == 0 ] ; then
+    if [ ! `psql $INSTANCE -tc "select 1" 2>/dev/null` ] ; then
         echo "* Creating instance database $INSTANCE ..."
         createdb "$INSTANCE"
     fi
@@ -399,7 +393,10 @@ log_handler = ['werkzeug:CRITICAL']
     shift 3
     
     if [ ! -f "$OEADMIN_DIR/normbot" ] ; then
-        echo "$OEADMIN_HOME/oetor $INSTANCE --no-branch $PORT $*" > "$OEADMIN_DIR/normbot"
+        echo "
+OECMD=\$1
+shift 1
+$OEADMIN_HOME/oetor \$1 $INSTANCE --no-branch $PORT \$*" > "$OEADMIN_DIR/normbot"
         chmod ug+x "$OEADMIN_DIR/normbot"
     fi
 
@@ -431,7 +428,7 @@ To use it browse: http://`hostname`:$PORT
 
         # create norm script
         if [ ! -f "$OEADMIN_DIR/normbot-$BRANCH_NAME" ] ; then
-            echo "$OEADMIN_HOME/oetor $INSTANCE $BRANCH_NAME $PORT $*" > $OEADMIN_DIR/normbot-$BRANCH_NAME
+            echo "$OEADMIN_HOME/oetor start $INSTANCE $BRANCH_NAME $PORT $*" > $OEADMIN_DIR/normbot-$BRANCH_NAME
             chmod ug+x "$OEADMIN_DIR/$INSTANCE/normbot-$BRANCH_NAME"
         fi
 
