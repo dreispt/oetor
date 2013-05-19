@@ -26,15 +26,34 @@ Quickstart full installation
 
 For an easy and quick start run:
 
-    /opt/openerp/oetor auto-install
+    /opt/openerp/oetor quickstart 
 
 This will install all system dependencies needed, including a PostgreSQL server, download v7 latest nightly build and create a `server1` OpenERP instance. It can be started with:
 
     /opt/openerp/server1/normbot start
 
 
-What's in the box
------------------
+Tutorial
+--------
+
+Before we can start, make sure OpenERP-inator is installed. You don't need to run the quickstart, but there's no problem if you did.
+Verify that it's installed typing:
+
+   cd /opt/openerp
+   ./oetor --help
+   ./oetor get-dependencies
+   ./oetor addsrc sources 7.0
+   ./oetor addsrc sources trunk
+
+   ./oetor create test-trunk sources-trunk 8070
+   ./test-trunk/normbot start &
+
+   ./oetor create test-v7 sources-7.0 8071
+   ./oetor addcommon 
+
+
+What's in the box?
+------------------
 
 Here is how source code directories and server instances are organized:
 

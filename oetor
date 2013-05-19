@@ -50,23 +50,19 @@ commands: get-dependencies; init; get-source; create demo.
 
 Commands available:
 
-  init              Creates db role for current user and the directory
+  setup-init        Creates db role for current user and the directory
                     structure. Requires sudoer privilege.
-  setup dependencies  
-                    Install system dependencies including the PostgreSQL
+  setup-deps        Install system dependencies including the PostgreSQL
                     database. Requires sudoer privilege.
-  setup latest <VERSION>
-                    Retrieves source code from nightly builds repository, into
+  setup-nightly     Retrieves source code from nightly builds repository, into
                     the 'shared' directory.
-  setup sources <VERSION>
-                    Retrieves source code from Lanchpad repositories, into
+  setup-sources     Retrieves source code from Lanchpad repositories, into
                     the 'shared' directory.
-  setup <REPONAME> [<NAME> <LPURL> list]
-                    Builds the REPONAME shared directory containing a
+  setup-src         Builds the REPONAME shared directory containing a
 		    list of projects.
-  update <REPONAME>  Updates the sources with most recent versions.
-  version           Display script's version info.
-  version-source    Displays the sources revision numbers.
+  update-src        Updates the sources with most recent versions.
+  version-src       Displays the sources revision numbers.
+
   create NAME [PORT] [FIXED_OPTIONS]
                     Create an OpenERP 7 database and instance named "NAME" and
                     listening at port "PORT". If additional "FIXED_OPTIONS" are
