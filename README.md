@@ -57,7 +57,7 @@ What's in the box?
 
 Here is how source code directories and server instances are organized:
 
-                                   ### Run install.sh or run `oetor init`
+                                   ###$ ./install.sh
         /opt/openerp               # HOME directory
           |- oetor                 # oetor script (symlinked to ./src/oetor/oetor)
           |- /src                  # shared SOURCE REPOSITORY
@@ -73,20 +73,27 @@ Here is how source code directories and server instances are organized:
           |    |- /sources-trunk     # ...another version source dir
           |    |    |- ...
           |    ...                   # ...add other shared sources as needed
-          |                          ###$ `oetor setup --help`
           |
-          |                        ###$ `oetor create server1 sources-7.0` 
+          |                          ###$ ./oetor create server1 sources-7.0 
           |- /server1                # an OpenERP server instance
           |    |- openerp-server.conf 
-          |    |- /src               # server sources: symlinked to dir in /opt/openerp/src
-          |    |- /common            # instance's specific sourcesi common to all branches
-          |    |- normbot            # script to help operate the vanilla server 
+          |    |- normbot-main       # script to help operate the vanilla server 
           |    |                     # (addons_path=./src/repos/*,./common/*)
+          |    |- /main
+          |    |    |- /server       # server sources: symlinked to dir in /opt/openerp/src
+          |    |    |- /addons 
+          |    |    |- /web
+          |    |    |- /projx
+          |    |    ... 
           |    |
-          |    |                     ### RUN:  `oetor addto server1 branchx lp:branchx`
-          |    |- /branchx           # instance source code (version x)
-          |    |- normbot-branchx    # server to work on a specific branch/version
-          |    |                     # (addons_path=./branchx,./src/repos/*,./common/*)
+          |    |                     ###$ ./oetor branch server -projx +projxz lp:branchxz
+          |    |- normbot-branchz    # server to work on a specific branch/version
+          |    |- /branchz           # instance source code (version z)
+          |    |    |- /server       # server sources: symlinked to dir in /opt/openerp/src
+          |    |    |- /addons 
+          |    |    |- /web
+          |    |    |- /projxz
+          |    |    ... 
           |    |
           |    ...                 # ...add as many branches as needed
           |                        # for help run:  `oetor addto --help`

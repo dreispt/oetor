@@ -117,16 +117,7 @@ init)
     fi
     ;;
 
-
-setup)
-   case $2 in
-    
-   --help)
-        #TODO ...
-        echo "Usage of oerot setup:"
-        ;;
-
-   dependencies)
+get-depends)
         #--------------------------------------------------
         # Install Postgres and System dependencies
         #  - tested with Ubuntu 12
@@ -150,7 +141,10 @@ setup)
         echo -e "Dependencies installed."
         ;;
 
-    nightly)
+
+get)
+   
+   if [ "$2" == "nightly" ] ; then 
 	# TODO: move this to `update`; check if dir does not exist
 	# Get parameters
 	if [ -z "$3" ] ; then
@@ -179,9 +173,8 @@ setup)
 	rm -rf $OEADMIN_HOME/src/nightly-$OEVERSION/*
 	mkdir -p $OEADMIN_HOME/src/nightly-$OEVERSION/server
 	mv $OEADMIN_HOME/src/~tmp/`ls $OEADMIN_HOME/src/~tmp/`/* $OEADMIN_HOME/src/nightly-$OEVERSION/server
-	;;
 	
-    *)
+    else
 	# Get parameters and verify directoru does not exist
 	ORIGIN="$2"
 	OEADMIN_DIR="$OEADMIN_HOME/src/$ORIGIN"
@@ -222,9 +215,8 @@ setup)
 	    done	
 	    echo -e "All sources ready."
 	fi
-	;;
     
-    esac
+    fi 
     ;; 
 
 
