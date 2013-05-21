@@ -24,11 +24,13 @@ To install `oetor` in your Ubuntu system:
 Quickstart full installation
 ---------------------------
 
-For an easy and quick start run:
+If you just want to quickly install OpenERP in your system, use the quickinstall feature:
 
     /opt/openerp/oetor quickstart 
 
-This will install all system dependencies needed, including a PostgreSQL server, download v7 latest nightly build and create a `server1` OpenERP instance. It can be started with:
+This will install the system dependencies needed, including PostgreSQL, download v7 latest nightly build and create an OpenERP instance named `server1`. 
+
+To start the server type:
 
     /opt/openerp/server1/normbot start
 
@@ -36,20 +38,29 @@ This will install all system dependencies needed, including a PostgreSQL server,
 Tutorial
 --------
 
-Before we can start, make sure OpenERP-inator is installed. You don't need to run the quickstart, but there's no problem if you did.
-Verify that it's installed typing:
+This will make you familiar with OpenERP-inator's operation. You can follow it either after or instead of the quickstart.
+
+If OpenERP-inator is correctly installed, the following commands should execute without error:
 
    cd /opt/openerp
    ./oetor --help
+
+First, let's make sure deprendencies are installed and download OpenERP sources:
+
    ./oetor get-dependencies
-   ./oetor addsrc sources 7.0
-   ./oetor addsrc sources trunk
+   ./oetor get nightly 7.0
 
-   ./oetor create test-trunk sources-trunk 8070
-   ./test-trunk/normbot start &
+Let's create and start our first server instance, running on port 8070:
 
-   ./oetor create test-v7 sources-7.0 8071
-   ./oetor addcommon 
+   ./oetor create test1 nightly-7.0 8070
+   ./test1/normbot start 
+
+That covers the basics, and does the same as the quickstart command.
+Stop the server with CTRL+C to return to the terminal prompt, and let's create another server instance using Launchpad sources instead, on port 8071:
+
+   ./oetor get source 7.0
+   ./oetor create test2 source-7.0 8070
+   ./test2/normbot start 
 
 
 What's in the box?
