@@ -12,24 +12,24 @@ Main features:
 * Easily list running instances and respective listening ports.
 
 
-Installing oetor
-----------------
+Installation
+------------
 
-To install `oetor` in your Ubuntu system:
+To install in an Ubuntu system:
 
-    wget https://raw.github.com/dreispt/master/install.sh
-    sudo bash install.sh
+    wget https://raw.github.com/dreispt/master/oetor  # download oetor script
+    sudo bash oetor install                           # run install command
+    rm oetor                                          # cleanup
 
 
 Quickstart full installation
 ---------------------------
 
-If you just want to quickly install OpenERP in your system, use the quickinstall feature:
+For a simple and quick installation of an OpenERP server, use the `quickstart`:
 
     /opt/openerp/oetor quickstart 
 
 This will install the system dependencies needed, including PostgreSQL, download v7 latest nightly build and create an OpenERP instance named `server1`. 
-
 To start the server type:
 
     /opt/openerp/server1/normbot start
@@ -40,28 +40,45 @@ Tutorial
 
 This will make you familiar with OpenERP-inator's operation. You can follow it either after or instead of the quickstart.
 
-If OpenERP-inator is correctly installed, the following commands should execute without error:
+
+##### Prepararation
+ 
+For convenience, let's position in the home directory and confirm that all system dependecies are installed:
 
    cd /opt/openerp
-   ./oetor --help
-
-First, let's make sure deprendencies are installed and download OpenERP sources:
-
    ./oetor get-dependencies
+
+##### Create servers using nightly builds
+
+Download latest nightly build and create two server instances, running on ports 8070 and 8071:
+
    ./oetor get nightly 7.0
 
-Let's create and start our first server instance, running on port 8070:
+   ./oetor create prod7 nightly-7.0 8070
+   prod7/normbot start &
 
-   ./oetor create test1 nightly-7.0 8070
-   ./test1/normbot start 
+   ./oetor create dev7 nightly-7.0 8071
+   dev7/normbot start &
 
-That covers the basics, and does the same as the quickstart command.
-Stop the server with CTRL+C to return to the terminal prompt, and let's create another server instance using Launchpad sources instead, on port 8071:
+This is very similar to what is done by the `quickstart` command.
 
-   ./oetor get source 7.0
-   ./oetor create test2 source-7.0 8070
-   ./test2/normbot start 
 
+##### Create a server using Launchpad sources
+
+Let's create another server instance using Launchpad sources instead, using default port 8069:
+
+   ./oetor get source trunk
+   ./oetor create test-trunk source-trunk
+   ./test-trunk/normbot start 
+
+Oetor uses lighweight checkouts to get the sources from Launchpad, but even so this might take a while. If you wiah, you can continue with the tutorial without performing this step.
+If you completed it, now press CTRL+C to stop the server and get back to the terminal prompt, so we can go on.
+
+
+##### Create a custom server instance
+
+    ./oetor create deptm7 nightly-7.0
+    bzr branch lp:deptm-management 
 
 What's in the box?
 ------------------
