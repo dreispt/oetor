@@ -112,7 +112,7 @@ install)
     rm -f $OEADMIN_HOME/oetor
     cp "$0" $OEADMIN_HOME/oetor
 
-    # Create psql role if missing
+    # Create psql role
     if [ -z `psql postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='$OEADMIN_USER'"` ] ; then
         echo -e "* Creating database role $OEADMIN_USER ..."
         su -c "createuser --createdb --no-createrole --no-superuser $OEADMIN_USER" postgres
@@ -179,7 +179,7 @@ get)
 	mv $OEADMIN_HOME/src/~tmp/`ls $OEADMIN_HOME/src/~tmp/`/* $OEADMIN_HOME/src/nightly-$OEVERSION/server
 	
     else
-	# Get parameters and verify directoru does not exist
+	# Get parameters and verify directory does not exist
 	ORIGIN="$2"
 	OEADMIN_DIR="$OEADMIN_HOME/src/$ORIGIN"
 
@@ -346,9 +346,19 @@ oetor create-add <INSTANCE> --no-branch <BASEDIR> [PORT] [FIXED_PARAMS]"
 
     # Create symlink to server source
     if [ ! -z "$OEBASE" ] ; then
-        if [ ! -d "$OEADMIN_DIR/src" ] ; then
-            echo "* Linking to server ..."
-            ln -s "$OEADMIN_HOME/src/$OEBASE" "$OEADMIN_DIR/src"
+        if [ -d "$OEADMIN_HOME/src/$OEBASE" ] ; then
+           echo "* Linking sources ..."
+	   for DIRNAME in `ls $OEADMIN_HOME/src/$OEBASE` ; do
+		if [ ! -d "$OEADMIN_DIR/main/$DIRNAME" ] ; then
+                   if [ "$DIRNAME" = "web" ] ; then
+			   echo -e "$OEADMIN_HOME/src/$OEBASE/$DIRNAME/addons -> $OEADMIN_DIR/main/$DIRNAME"
+			   ln -s "$OEADMIN_HOME/src/$OEBASE/$DIRNAME/addons" "$OEADMIN_DIR/main/$DIRNAME"
+                   else
+			   echo -e "$OEADMIN_HOME/src/$OEBASE/$DIRNAME -> $OEADMIN_DIR/main/$DIRNAME"
+			   ln -s "$OEADMIN_HOME/src/$OEBASE/$DIRNAME" "$OEADMIN_DIR/main/$DIRNAME"
+                   fi
+                fi
+	   done
         fi
     fi
 
@@ -382,7 +392,7 @@ log_handler = ['werkzeug:CRITICAL']
         echo "
 OECMD=\$1
 shift 1
-$OEADMIN_HOME/oetor \$1 $INSTANCE --no-branch $PORT \$*" > "$OEADMIN_DIR/normbot"
+$OEADMIN_HOME/oetor \$1 $INSTANCE --no-branch \$*" > "$OEADMIN_DIR/normbot"
         chmod ug+x "$OEADMIN_DIR/normbot"
     fi
 
@@ -499,27 +509,30 @@ start)
     #--------------------------------------------------
     if [ -z "$3" ] ; then
         echo "usage: oetor start INSTANCE BRANCHNAME [PORT] [PARAMS]"
-        echo "Start an OpenERp server."
+        echo "Start an OpenERP server."
         exit 0
     fi
     #--------------------------------------------------
  
     # Get parameters
-    INSTANCE="$2"
-    BRANCH_NAME="$3"
+    shift 1
+    INSTANCE="$1"
+    shift 1
+    BRANCH_NAME="$1"
+    shift 1
     
     # Get optional port number    
-    if [ -z "$4" ] ; then
+    if [ -z "$1" ] ; then
         PORT=8069
     else
-        PORT="$4"
+        PORT="$1"
         shift 1
     fi
     
-    shift 3
-    # TODO: FIX COMMAS FROM EMPTY DIRES
-    COMMON="`ls -dm $OEADMIN_HOME/src/repos/*/|tr -d '[:space:]'`"
-    ADDONS="`ls -dm $OEADMIN_HOME/$INSTANCE/common/*/|tr -d '[:space:]'`"
+    # TODO: FIX COMMAS FROM EMPTY DIRS
+    ADDONS="`ls -d1 $OEADMIN_HOME/$INSTANCE/main/*/|grep -v "/server"|tr "\n" ","`"
+    #COMMON="`ls -dm $OEADMIN_HOME/src/repos/*/|tr -d '[:space:]'`"
+    #ADDONS="`ls -dm $OEADMIN_HOME/$INSTANCE/common/*/|tr -d '[:space:]'`"
     $OEADMIN_HOME/$INSTANCE/base/server/openerp-server --xmlrpc-port=$PORT -d $BRANCH_NAME-$INSTANCE $* --addons-path="$OEADMIN_HOME/$INSTANCE/$BRANCH_NAME,$COMMON,$ADDONS" --config="$OEADMIN_HOME/$INSTANCE/openerp-server.conf" $*
         ;;
 
