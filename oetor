@@ -406,9 +406,8 @@ log_handler = ['werkzeug:CRITICAL']
     
     if [ ! -f "$OE_DIR/$BRANCHNAME/start" ] ; then
         echo "# start server script
-INSTANCEPATH="\`dirname \$0\`" 
-ADDONSPATH=\"\`ls -d \$INSTANCEPATH/* | grep -v /server$ | awk -vORS=, '{print \$1}' | sed 's/,\$/ /'\`\"
-echo \"Path: \$ADDONSPATH\"
+INSTANCEPATH=\$(cd \`dirname \$0\` && pwd) 
+ADDONSPATH=\"\`ls -d1 \$INSTANCEPATH/*/ | grep -v '/server/$' | awk -vORS=, '{print \$1}' | sed 's/\/,/,/g' | sed 's/,\$//g'\`\"
 \$INSTANCEPATH/server/openerp-server --xmlrpc-port=$PORT --addons-path=\"\$ADDONSPATH\" $* \$*" > "$OE_DIR/$BRANCHNAME/start"
         chmod ug+x "$OE_DIR/$BRANCHNAME/start"
     fi
