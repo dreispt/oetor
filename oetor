@@ -6,8 +6,9 @@
 ################################################################################
 
 #fixed parameters:
-OEADMIN_VERSION="0.3b"
+OEADMIN_VERSION="0.4-beta"
 OEADMIN_USER="`who am i|awk '{print $1}'`"
+# TODO: multiple home support (also affects install command)
 OEADMIN_HOME="/opt/openerp"
 
 color='\e[1;34m'
@@ -19,52 +20,43 @@ case "$1" in
 --help)
     echo "usage: oetor <command> [<args>]
 OpenERP-inator, a tool to manage and test multiple OpenERP server instances.
-https://github.com/dreispt/oetor
 
 <fluff> Dominate the entire ERP tri-state area by easilly installing and 
-creating an army of OpenERP server instances in your server. Beware of the 
-self-destruct button. </fluff>
+creating an army of OpenERP server instances in your server.</fluff>
 
-For an easy and  quick start run: ./oetor auto-install
-This will make an automatic full installation, including the creation of an
-initial "demo" OpenERP instance. It's equivalent to running the sequence of
-commands: get-dependencies; init; get-source; create demo.
-
+For an easy and quick start use: ./oetor quickstart
+For the latest code and documentation see: https://github.com/dreispt/oetor
+ 
 Commands available:
 
-  setup-init        Creates db role for current user and the directory
-                    structure. Requires sudoer privilege.
-  setup-deps        Install system dependencies including the PostgreSQL
-                    database. Requires sudoer privilege.
-  setup-nightly     Retrieves source code from nightly builds repository, into
-                    the 'shared' directory.
-  setup-sources     Retrieves source code from Lanchpad repositories, into
-                    the 'shared' directory.
-  setup-src         Builds the REPONAME shared directory containing a
-		    list of projects.
-  update-src        Updates the sources with most recent versions.
-  version-src       Displays the sources revision numbers.
+  install           Create directory structure  and db role for current user.
+                    Run with sudo privilege.
+  quickstart        Automatic full installation, including the creation of an
+                    initial "v7" OpenERP instance.
+  get-dependencies  Install system dependencies including the PostgreSQL database.
+                    Run with sudo privilege.
 
-  create NAME [PORT] [FIXED_OPTIONS]
-                    Create an OpenERP 7 database and instance named "NAME" and
-                    listening at port "PORT". If additional "FIXED_OPTIONS" are
-                    provided, they will be included in the generated 'start'
-                    script.
-  start OEVERS NAME Starts this server instance.
-  test OEVERS NAME  Creates a test database and runs tests for the instance.
-  fake-smtp         Launch a test SMTP server on localhost, printing to stdout.
+  get-nightly       Retrieve source code from nightly builds repository. 
+  get-sources       Retrieve source code from Launchpad official repositories.
+  get-ocb           Retrieve source code from Launchpad community backport repositories.
+  get               Retrieve source code from custom locations.
+  update            Update sources with most recent versions.
+  version           Display sources versions or revision numbers.
 
-An OpenERP instance is a directory inside oetor's home directory. It can be
-started running the `start` script and and includes a `openerp-server.conf`
-configuration file used by the instance.
+  create            Create an OpenERP instance.
+  fake-smtp         Launch a debug SMTP server on localhost, printing to stdout.
 
-If the `start` script is provided with additional parameters, these will be
-passed to the openerp-server.
-For example: ./start.sh -u all --stop-after-init
+An OpenERP instance is a directory inside oetor's home directory. 
+It contains a 'main' subdirectory containing the sources used by it:
+server, addons, web and other modules directories.
+ 
+It can be started using the 'start' script in the subdirectory. Additional
+parameters are passed on to the OpenERP server. This can be used to pass server 
+options such as --xmlrpc-port=XXXX or --debug.
 
-The contained directories are automatically added to the addons_path upon server
-start. By default includes symlinks to the official addons sources in the
-'shared' directory.
+The addons path is automatically calculated bu the script. To add a module
+directory just copy it into the 'main' directory.
+ 
 "
     ;;
 
@@ -242,7 +234,7 @@ update)
         exit 0
     fi
             
-    # TODO: allow to update nightly builds
+    # TODO: update - add also update nightly builds
     shift 1
     while [ "$1" ] ; 
     do
@@ -308,6 +300,12 @@ create)
         exit 0
     fi
 
+# TODO: create - add documentation
+#  create            Create an OpenERP instance named "NAME" and
+#                    listening at port "PORT". If additional "FIXED_OPTIONS" are
+#                    provided, they will be included in the generated 'start'
+#                    script.
+ 
     # Get version and instance name
     shift 1
     INSTANCE="$1"
@@ -404,6 +402,7 @@ log_handler = ['werkzeug:CRITICAL']
     
     shift 1
     
+    # TODO: create - add create database to start script
     if [ ! -f "$OE_DIR/$BRANCHNAME/start" ] ; then
         echo "# start server script
 INSTANCEPATH=\$(cd \`dirname \$0\` && pwd) 
@@ -423,28 +422,12 @@ To use it browse: http://`hostname`:$PORT
    ;;
 
 
-create0)
-    #--------------------------------------------------
-    # Create a new instance:
-    #   oetor create INSTANCE <BASE> [PORT] [FIXED_PARAMS]
-    #--------------------------------------------------
-
-    # Check OpenERP version parameter
-    if [ -z "$3" ] ; then
-        echo "Usage:   oetor create INSTANCE BASEDIR"
-        echo "Example: oetor create myserver latest-7.0"
-        exit 0
-    else
-        # Get parameters
-        INSTANCE="$2"
-        OEBASE="$3"
-        shift 3
-        $0 create-add $OEVERSION $INSTANCE --no-branch $OEBASE $*
-    fi
-    ;;
-    
-    
+   
+# TODO: branch - add copy/branch feature (?)
+# TODO: install-all - add install all modules feature
 install-all)
+    echo "NOT IMPLEMENTED"
+    exit 1
     #--------------------------------------------------
     if [ -z "$4" ] ; then
         echo "usage: oetor install INSTANCE BRANCHNAME"
@@ -469,6 +452,9 @@ install-all)
 
 
 test)
+    # TODO: test - add test feature
+    echo "NOT IMPLEMENTED"
+    exit 1
     # Get parameters
     INSTANCE="$2"
     BRANCH_NAME="$3"
@@ -482,6 +468,7 @@ test)
 
 
 remove)
+    # TODO: remove - review remove feature
     echo "Sorry, the self-destruct button is currently disabled. To go ahead run:
 rm -r $OEADMIN_HOME/INSTANCE
 dropdb INSTANCE-VERSION"
