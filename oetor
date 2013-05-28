@@ -7,9 +7,19 @@
 
 #fixed parameters:
 OEADMIN_VERSION="0.4-beta"
-OEADMIN_USER="`who am i|awk '{print $1}'`"
-# TODO: multiple home support (also affects install command)
-OEADMIN_HOME="/opt/openerp"
+OEADMIN_USER="`whoami`"
+
+# --at command allows to firce a the home directory
+if [ "$1" = "--at" ] ; then
+    OEADMIN_HOME="$2"
+    if [ -z "$OEADMIN_HOME" ] ; then 
+        exit 1
+    fi
+    shift 2
+else
+    OEADMIN_HOME="$(cd `dirname $0` && pwd)"
+fi 
+
 
 color='\e[1;34m'
 endColor='\e[0m'
@@ -24,17 +34,16 @@ OpenERP-inator, a tool to manage and test multiple OpenERP server instances.
 <fluff> Dominate the entire ERP tri-state area by easilly installing and 
 creating an army of OpenERP server instances in your server.</fluff>
 
-For an easy and quick start use: ./oetor quickstart
-For the latest code and documentation see: https://github.com/dreispt/oetor
+For an easy and quick start use:              ./oetor quickstart
+To get more help on a specific command type:  ./oetor <command> --help
+For the latest code and documentation see:    https://github.com/dreispt/oetor
  
 Commands available:
 
-  install           Create directory structure  and db role for current user.
-                    Run with sudo privilege.
-  quickstart        Automatic full installation, including the creation of an
-                    initial "v7" OpenERP instance.
-  get-dependencies  Install system dependencies including the PostgreSQL database.
-                    Run with sudo privilege.
+  quickstart        Automatic full installation and create an initial OpenERP instance (needs sudo).
+  install           Create directory structure and db role for current user (may need sudo).
+  get-dependencies  Install system dependencies and PostgreSQL sb server (needs sudo).
+  fake-smtp         Launch a debug SMTP server printing to stdout (needs sudo).
 
   get-nightly       Retrieve source code from nightly builds repository. 
   get-sources       Retrieve source code from Launchpad official repositories.
@@ -44,18 +53,19 @@ Commands available:
   version           Display sources versions or revision numbers.
 
   create            Create an OpenERP instance.
-  fake-smtp         Launch a debug SMTP server on localhost, printing to stdout.
+
 
 An OpenERP instance is a directory inside oetor's home directory. 
 It contains a 'main' subdirectory containing the sources used by it:
-server, addons, web and other modules directories.
+server, addons, web and possibly other module directories.
  
-It can be started using the 'start' script in the subdirectory. Additional
-parameters are passed on to the OpenERP server. This can be used to pass server 
-options such as --xmlrpc-port=XXXX or --debug.
+It can be started using the 'start' script in the corresponding subdirectory.
+Any additional parameters given are passed on to the OpenERP server. 
+This can be used to set server options such as '--xmlrpc-port=XXXX' or '--debug'.
 
-The addons path is automatically calculated bu the script. To add a module
-directory just copy it into the 'main' directory.
+The addons path used is automatically calculated by the start script. 
+Copying a directory with modules into the subdirectory is all that is needed
+to have it added to the server's addons path.
  
 "
     ;;
@@ -77,19 +87,20 @@ install)
         exit 0
     fi
     if [ -z "$OE_DIR" ] ; then
-        OE_DIR="/opt/openerp"
+        OE_DIR="$OEADMIN_HOME"
     fi
+    echo "Will install into $OE_DIR for user $OEADMIN_USER"
 
     if [ ! -d /var/log$OE_DIR ] ; then
         echo -e "* Creating base log directory /var/log$OE_DIR ..."
-        mkdir -p /var/log$OE_DIR
-        chown $OEADMIN_USER:root /var/log$OE_DIR
+        sudo mkdir -p /var/log$OE_DIR
+        sudo chown $OEADMIN_USER:root /var/log$OE_DIR
     fi
 
     if [ ! -d $OE_DIR ] ; then
         echo -e "* Creating oetor home $OE_DIR for user $OEADMIN_USER ..."
-        mkdir -p $OE_DIR/src
-        chown -R $OEADMIN_USER:root $OE_DIR
+        sudo mkdir -p $OE_DIR/src
+        sudo chown -R $OEADMIN_USER $OE_DIR
     fi
 
     echo -e "* Installing this oetor script to directory $OE_DIR ..."
@@ -103,7 +114,7 @@ install)
     #OECALLER="`whoami`"
     #if [ -z `psql postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='$OEADMIN_USER'" postgres $OECALLER` ] ; then
         echo -e "* Creating database role $OEADMIN_USER ..."
-        su -c "createuser --createdb --no-createrole --no-superuser $OEADMIN_USER" postgres
+        sudo su -c "createuser --createdb --no-createrole --no-superuser $OEADMIN_USER" postgres
     #fi
     ;;
 
@@ -115,13 +126,13 @@ get-dep*)
     # NOTE: administrator pivilege needed
     #--------------------------------------------------
     echo -e "\n---- Installing PostgreSQL ----"
-    apt-get install postgresql
+    sudo apt-get install postgresql
 
     echo -e "\n---- Installing system packages ----"
-    yes | apt-get install bzr bzrtools python-pip git
+    yes | sudo apt-get install bzr bzrtools python-pip git
 
     echo -e "\n---- Installing python packages ----"
-    yes | apt-get install python-dateutil python-docutils python-feedparser \
+    yes | sudo apt-get install python-dateutil python-docutils python-feedparser \
     python-gdata python-jinja2 python-ldap python-libxslt1 python-lxml python-mako \
     python-mock python-openid python-psycopg2 python-psutil python-pybabel \
     python-pychart python-pydot python-pyparsing python-reportlab python-simplejson \
@@ -129,7 +140,7 @@ get-dep*)
     python-werkzeug python-xlwt python-yaml python-zsi python-gdata
 
     #echo -e "\n---- Install python libraries ----"
-    #pip install gdata
+    #sudo pip install gdata
     echo -e "Dependencies installed."
     ;;
 
@@ -407,7 +418,11 @@ log_handler = ['werkzeug:CRITICAL']
         echo "# start server script
 INSTANCEPATH=\$(cd \`dirname \$0\` && pwd) 
 ADDONSPATH=\"\`ls -d1 \$INSTANCEPATH/*/ | grep -v '/server/$' | awk -vORS=, '{print \$1}' | sed 's/\/,/,/g' | sed 's/,\$//g'\`\"
-\$INSTANCEPATH/server/openerp-server --xmlrpc-port=$PORT --addons-path=\"\$ADDONSPATH\" $* \$*" > "$OE_DIR/$BRANCHNAME/start"
+if [ ! -z \"\$ADDONSPATH\" ] ; then 
+  \$INSTANCEPATH/server/openerp-server --xmlrpc-port=$PORT --addons-path=\"\$ADDONSPATH\" $* \$*
+else
+  \$INSTANCEPATH/server/openerp-server --xmlrpc-port=$PORT $* \$*
+fi" > "$OE_DIR/$BRANCHNAME/start"
         chmod ug+x "$OE_DIR/$BRANCHNAME/start"
     fi
 
@@ -476,9 +491,10 @@ dropdb INSTANCE-VERSION"
 
 
 quickstart)
+    $0 --at "$OEADMIN_HOME" install $2
     $0 get-dependencies 
-    $0 get-nightly 7.0 
-    $0 create v7 nightly-7.0
+    $0 --at "$OEADMIN_HOME" get-nightly 7.0 
+    $0 --at "$OEADMIN_HOME" create v7 nightly-7.0
     ;;
 
 

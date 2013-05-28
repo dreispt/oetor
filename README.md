@@ -21,7 +21,7 @@ To install in an Ubuntu system:
 
 ```bash
 wget https://raw.github.com/dreispt/master/oetor  # download oetor script
-sudo bash oetor install                           # run install command
+bash oetor install                                # run install command
 rm oetor                                          # cleanup
 ```
 
@@ -36,7 +36,7 @@ For a simple and quick installation of an OpenERP server, use the `quickstart`:
 This will install the system dependencies needed, including PostgreSQL, download v7 latest nightly build and create an OpenERP instance named `server1`. 
 To start the server type:
 
-    /opt/openerp/server1/normbot start
+    /opt/openerp/v7/main/start
 
 
 Tutorial
