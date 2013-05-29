@@ -226,7 +226,7 @@ get-sou*)
 
     shift 1; OEVERSION="$1"
 
-    $0 get sources-$OEVERSION \
+    $0 --at $OEADMIN_HOME get sources-$OEVERSION \
            https://launchpad.net/~openerp/openobject-server/$OEVERSION server \
            https://launchpad.net/~openerp/openobject-addons/$OEVERSION addons \
            https://launchpad.net/~openerp/openerp-web/$OEVERSION web
@@ -241,10 +241,10 @@ get-ocb)
 
     shift 1; OEVERSION="$1"
 
-    $0 get ocb-$OEVERSION \
-           https://launchpad.net/~ocb/server/$OEVERSION server \
-           https://launchpad.net/~ocb/addons/$OEVERSION addons \
-           https://launchpad.net/~ocb/web/$OEVERSION web
+    $0 --at $OEADMIN_HOME get ocb-$OEVERSION \
+           https://launchpad.net/~ocb/ocb-server/$OEVERSION server \
+           https://launchpad.net/~ocb/ocb-addons/$OEVERSION addons \
+           https://launchpad.net/~ocb/ocb-web/$OEVERSION web
     ;; 
 
 
