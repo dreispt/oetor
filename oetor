@@ -13,7 +13,7 @@ OEADMIN_USER="`whoami`"
 # WARNING: for internal use; not part of the public interface
 OEADMIN_HOME="$(cd `dirname $0` && pwd)"
 if [ "$1" = "--at" ] ; then
-    OEADMIN_HOME="`echo '$2' | sed 's/\/$//'`"  # remove trailing slash
+    OEADMIN_HOME="`echo $2 | sed 's/\/$//'`"  # remove trailing slash
     shift 2
 fi 
 
@@ -78,7 +78,7 @@ install)
     #--------------------------------------------------
 
     shift 1
-    OE_DIR="$1"; shift 1
+    OE_DIR="$1"
     if [ "$OE_DIR" = "--help" ] ; then
         echo "Usage: oetor install [directory]
 Create directory structure and db role for current user (may need sudo privilege).
@@ -261,7 +261,7 @@ update)
     shift 1
     while [ "$1" ] ; 
     do
-        REPODIR="`echo '$1' | sed 's/\/$//'`"  # remove trailing slash
+        REPODIR="`echo $1 | sed 's/\/$//'`"  # remove trailing slash
         if [ ! -d "$REPODIR" ] ; then
             echo "WARNING: $REPODIR not found."
         else
@@ -385,7 +385,7 @@ create)
         else
             echo "* Linking sources ..."
 	        # for DIRNAME in `cd $OEBASE && ls -d ./*/` ; do
-	        for DIRNAME in `ls -d "$OEBASE"*/` ; do
+	        for DIRNAME in `ls -d "$OEBASE"/*/` ; do
                 if [ ! -d "$OE_DIR/$BRANCHNAME/`basename $DIRNAME`" ] ; then
                    if [ "`basename $DIRNAME`" = "web" ] ; then
                        echo -e "  $DIRNAME"addons #-> "$OE_DIR"/"$BRANCHNAME"/"$DIRNAME"
@@ -408,7 +408,7 @@ create)
     #--------------------------------------------------
     # - create config
     #--------------------------------------------------
-
+    # TODO: create - on user login, initial database is not the instance's db
     if [ ! -f "$OE_DIR/openerp-server.conf" ] ; then
         echo "* Creating instance config file ..."
         #TODO: better conf file (?)
@@ -518,6 +518,11 @@ Equivalent to:
 "
     fi
 
+    if [ ! -z "$2" ] ; then
+        OEADMIN_HOME="$2"
+    fi
+    OEDIR="`echo $OEDIR | sed 's/\/$//'`"  # remove trailing slash
+ 
     $0 --at "$OEADMIN_HOME" install $2
     $0 get-dependencies 
     $0 --at "$OEADMIN_HOME" get-nightly 7.0 
