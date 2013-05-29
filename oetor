@@ -10,14 +10,11 @@ OEADMIN_VERSION="0.4-beta"
 OEADMIN_USER="`whoami`"
 
 # --at command allows to firce a the home directory
+# WARNING: for internal use; not part of the public interface
+OEADMIN_HOME="$(cd `dirname $0` && pwd)"
 if [ "$1" = "--at" ] ; then
-    OEADMIN_HOME="$2"
-    if [ -z "$OEADMIN_HOME" ] ; then 
-        exit 1
-    fi
+    OEADMIN_HOME="`echo '$2' | sed 's/\/$//'`"  # remove trailing slash
     shift 2
-else
-    OEADMIN_HOME="$(cd `dirname $0` && pwd)"
 fi 
 
 
@@ -42,7 +39,7 @@ Commands available:
 
   quickstart        Automatic full installation and create an initial OpenERP instance (needs sudo).
   install           Create directory structure and db role for current user (may need sudo).
-  get-dependencies  Install system dependencies and PostgreSQL sb server (needs sudo).
+  get-dependencies  Install system dependencies and PostgreSQL db server (needs sudo).
   fake-smtp         Launch a debug SMTP server printing to stdout (needs sudo).
 
   get-nightly       Retrieve source code from nightly builds repository. 
@@ -83,12 +80,20 @@ install)
     shift 1
     OE_DIR="$1"; shift 1
     if [ "$OE_DIR" = "--help" ] ; then
-        echo "Usage: oetor install [directory]"
+        echo "Usage: oetor install [directory]
+Create directory structure and db role for current user (may need sudo privilege).
+The install destinations is /opt/openerp, unless a specific directory is indicatted.
+
+The currently running oetor script will be copied to the install directory, and 
+overwritten in case it already exists. This can be used to update the script in 
+the install directory, by repeating the install command on a oetor's newer version.
+"
         exit 0
     fi
     if [ -z "$OE_DIR" ] ; then
         OE_DIR="$OEADMIN_HOME"
     fi
+    OEDIR="`echo $OEDIR | sed 's/\/$//'`"  # remove trailing slash
     echo "Will install into $OE_DIR for user $OEADMIN_USER"
 
     if [ ! -d /var/log$OE_DIR ] ; then
@@ -110,12 +115,9 @@ install)
     chown $OEADMIN_USER $OE_DIR/oetor
 
     # Create psql role
-    # TODO: properly check if role exists, when running as root
-    #OECALLER="`whoami`"
     #if [ -z `psql postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='$OEADMIN_USER'" postgres $OECALLER` ] ; then
-        echo -e "* Creating database role $OEADMIN_USER ..."
-        sudo su -c "createuser --createdb --no-createrole --no-superuser $OEADMIN_USER" postgres
-    #fi
+    #echo -e "* Creating database role $OEADMIN_USER ..."
+    sudo su -c "createuser --createdb --no-createrole --no-superuser $OEADMIN_USER" postgres 2>/dev/null
     ;;
 
 
@@ -125,13 +127,19 @@ get-dep*)
     #  - tested with Ubuntu 12
     # NOTE: administrator pivilege needed
     #--------------------------------------------------
-    echo -e "\n---- Installing PostgreSQL ----"
+    if [ "$2" = "--help" ] ; then
+        echo "Usage: oetor get-dependencies
+Install system dependencies and PostgreSQL database server (needs sudo).
+"
+    fi
+
+    echo -e "---- Installing PostgreSQL ----"
     sudo apt-get install postgresql
 
-    echo -e "\n---- Installing system packages ----"
+    echo -e "---- Installing system packages ----"
     yes | sudo apt-get install bzr bzrtools python-pip git
 
-    echo -e "\n---- Installing python packages ----"
+    echo -e "---- Installing python packages ----"
     yes | sudo apt-get install python-dateutil python-docutils python-feedparser \
     python-gdata python-jinja2 python-ldap python-libxslt1 python-lxml python-mako \
     python-mock python-openid python-psycopg2 python-psutil python-pybabel \
@@ -141,13 +149,17 @@ get-dep*)
 
     #echo -e "\n---- Install python libraries ----"
     #sudo pip install gdata
-    echo -e "Dependencies installed."
+    echo -e "Done."
     ;;
 
 
 get)
-	if [ -z "$4" ] ; then
-		echo "Usage: oetor get <srcname> [<url> <dirname>]..."
+    if [ -z "$4" ] ; then
+		echo "Usage: oetor get <srcname> [<url> <dirname>]...
+Create a shared source code directory inside the src/ directory, named <srcname>.
+Then retrieve each <url> into the subdirectory <dirname>.
+If src/<srcname> already exists, only missing <dirname>'s will be installed.
+"
 		exit 0
 	fi
 
@@ -245,15 +257,15 @@ update)
         exit 0
     fi
             
-    # TODO: update - add also update nightly builds
+    # TODO: update - allow update of  nightly build src repos
     shift 1
     while [ "$1" ] ; 
     do
-        REPODIR="$1"
+        REPODIR="`echo '$1' | sed 's/\/$//'`"  # remove trailing slash
         if [ ! -d "$REPODIR" ] ; then
             echo "WARNING: $REPODIR not found."
         else
-           for DIRNAME in `ls -d "$REPODIR"*/` ; do
+           for DIRNAME in `ls -d "$REPODIR"/*/` ; do
               echo -e "Updating $DIRNAME..."
               bzr update "$DIRNAME"
            done
@@ -274,15 +286,15 @@ version)
             
     shift 1
     while [ "$1" ] ; do 
-        REPODIR="$1"
+        REPODIR="`echo $1 | sed 's/\/$//'`"  # remove trailing slash
         if [ ! -d "$REPODIR" ] ; then
             echo "WARNING: $REPODIR not found."
         else
             echo -e "Source revision numbers for $REPODIR:"
-            for DIRNAME in `ls -d "$REPODIR"*/` ; do
-                if [ -f "$DIRNAME"PKG-INFO ] ; then
+            for DIRNAME in `ls -d "$REPODIR"/*/` ; do
+                if [ -f "$DIRNAME/PKG-INFO" ] ; then
                     # nightly build
-                    grep "^Version" "$DIRNAME"PKG-INFO
+                    grep "^Version" "$DIRNAME/PKG-INFO"
                 else
                     echo -en "`basename "$DIRNAME"`\t"
                     bzr revno -q "$DIRNAME"
@@ -325,10 +337,10 @@ create)
     BRANCHNAME="main"
 
     # Base directory
-    # TODO: fix create to tolerate ending '/' in fullpaths. Same for update and version commands.
     shift 1
-    OEBASE="$1"
+    OEBASE="`echo $1 | sed 's/\/$//'`"  # remove trailing slash
     if [ "$OEBASE" = "--no-src" ] ; then
+        # TODO: document the --no-src option
         OEBASE=""
     else
         if [ -d "$OEADMIN_HOME/src/$OEBASE" ] ; then
@@ -478,7 +490,7 @@ test)
     createdb $DBNAME
     shift 1 
     $0 start $* -d $DBNAME --test-enable --stop-after-init
-    # TODO: fix double params
+    # TODO: test command - fix double params
     ;;
 
 
@@ -491,6 +503,21 @@ dropdb INSTANCE-VERSION"
 
 
 quickstart)
+    if [ "$2" = "--help" ] ; then
+        echo "Usage: oetor quickstart <installdir>
+Installs OpenERP-inator and performs an automatic full installation of an
+initial OpenERP instance. Requires sudo privilige to perform the system 
+installation steps.
+If no specific installation directory is provided, '/opt/openerp' will be used.
+
+Equivalent to:
+    ./oetor install
+    /opt/openerp/oetor get-dependencies
+    /opt/openerp/oetor get-nightly 7.0
+    /opt/openerp/oetor create v7 nightly-7.0
+"
+    fi
+
     $0 --at "$OEADMIN_HOME" install $2
     $0 get-dependencies 
     $0 --at "$OEADMIN_HOME" get-nightly 7.0 
@@ -499,10 +526,12 @@ quickstart)
 
 
 *)
-    # Basic usage instruction
-    echo "usage: oetor <command> [<args>]
-Type \`oetor --help\` to show all commands available."
-    exit 0
+    if [ -z "$1" ] ; then
+        echo "usage: oetor <command> [<args>]"
+    else
+        echo "Not a valid command."
+    fi
+    echo "Type \`oetor --help\` to show all commands available."
     ;;
 
 
