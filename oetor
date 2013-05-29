@@ -6,7 +6,7 @@
 ################################################################################
 
 #fixed parameters:
-OEADMIN_VERSION="0.4-beta"
+OEADMIN_VERSION="0.4-RC"
 OEADMIN_USER="`whoami`"
 
 # --at command allows to firce a the home directory
