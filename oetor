@@ -135,7 +135,7 @@ Install system dependencies and PostgreSQL database server (needs sudo).
     sudo apt-get install postgresql
 
     echo -e "---- Installing system packages ----"
-    yes | sudo apt-get install bzr bzrtools python-pip git
+    yes | sudo apt-get install bzr bzrtools python-pip python-virtualenv 
 
     echo -e "---- Installing python packages ----"
     yes | sudo apt-get install python-dateutil python-docutils python-feedparser \
@@ -143,10 +143,18 @@ Install system dependencies and PostgreSQL database server (needs sudo).
     python-mock python-openid python-psycopg2 python-psutil python-pybabel \
     python-pychart python-pydot python-pyparsing python-reportlab python-simplejson \
     python-tz python-unittest2 python-vatnumber python-vobject python-webdav \
-    python-werkzeug python-xlwt python-yaml python-zsi python-gdata
+    python-werkzeug python-xlwt python-yaml python-zsi
 
     #echo -e "\n---- Install python libraries ----"
     #sudo pip install gdata
+
+    # setup virtualenv
+    virtualenv $OEADMIN_HOME/env
+    source $OEADMIN_HOME/env/activate
+    pip install dateutil docutils feedparser gdata jinja2 ldap libxslt1 lxml mako mock \
+    openid psycopg2 psutil pybabel pychart pydot pyparsing reportlab simplejson \
+    tz unittest2 vatnumber vobject webdav werkzeug xlwt yaml zsi 
+
     echo -e "Done."
     ;;
 
@@ -204,10 +212,9 @@ Avaliable options for <srcname>:
     ;;
 
 
-get-src) ### WIP
-    # TODO @ get-src: (WIP) make get commands unified and more consistent.
+get-src)
     if [ -z "$5" ] ; then
-         echo "Usage: oetor get-src <method> <srcname> [<url> <dirname>]...
+        echo "Usage: oetor get-src <method> <srcname> [<url> <dirname>]...
 Create a shared source code directory inside the src/ directory, named <srcname>.
 Then, using <method>, retrieve each <url> into the subdirectory <dirname>.
 If src/<srcname> already exists, only missing <dirname>s will be installed.
@@ -399,6 +406,7 @@ create)
     if [ ! -d "$OE_DIR/$BRANCHNAME" ] ; then
         echo "* Creating instance directory ..."
         mkdir -p "$OE_DIR/$BRANCHNAME"
+        ln -s $OEADMIN_HOME/env $OE_DIR/$BRANCHNAME/env
     fi
 
     # Create symlink to server source
@@ -454,6 +462,7 @@ log_handler = ['werkzeug:CRITICAL']
         echo "# start server script
 INSTANCEPATH=\$(cd \`dirname \$0\` && pwd) 
 ADDONSPATH=\"\`ls -d1 \$INSTANCEPATH/*/ | grep -v '/server/$' | awk -vORS=, '{print \$1}' | sed 's/\/,/,/g' | sed 's/,\$//g'\`\"
+source \$INSTANCEPATH/env/bin/activate
 if [ ! -z \"\$ADDONSPATH\" ] ; then 
   \$INSTANCEPATH/server/openerp-server --xmlrpc-port=$PORT --addons-path=\"\$ADDONSPATH\" $* \$*
 else
