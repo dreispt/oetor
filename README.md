@@ -65,7 +65,7 @@ For convenience, let's position in the home directory and confirm that all syste
 
 To create two server instances, running on ports 8070 and 8071, using the latest nightly build:
 
-    ./oetor get-nightly 7.0                # download latest nighlty build
+    ./oetor get nightly-7.0                # download latest nighlty build
     ./oetor create prod7 nightly-7.0 8070  # create prod7 instance on port 8070
     prod7/main/start &                     # start prod7 instance in the background
     ./oetor create dev7 nightly-7.0 8071   # create dev7 instance on port 8071

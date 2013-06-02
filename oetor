@@ -109,15 +109,13 @@ the install directory, by repeating the install command on a oetor's newer versi
     fi
 
     echo -e "* Installing this oetor script to directory $OE_DIR ..."
-    rm -f $OE_DIR/oetor
     cp "$0" $OE_DIR/oetor
     chmod +x $OE_DIR/oetor
     chown $OEADMIN_USER $OE_DIR/oetor
 
     # Create psql role
-    #if [ -z `psql postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='$OEADMIN_USER'" postgres $OECALLER` ] ; then
-    #echo -e "* Creating database role $OEADMIN_USER ..."
-    sudo su -c "createuser --createdb --no-createrole --no-superuser $OEADMIN_USER" postgres 2>/dev/null
+    sudo su -c "createuser --createdb --no-createrole --no-superuser $OEADMIN_USER" postgres 2>/dev/null \
+        && echo "* Created database role $OEADMIN_USER"
     ;;
 
 
@@ -153,190 +151,125 @@ Install system dependencies and PostgreSQL database server (needs sudo).
     ;;
 
 
-get-src)
-    # TODO: (WIP) make get commands unified and more consistent.
-    if [ -z "$3" ] ; then
-		echo "Usage: oetor get <srcname> [<url> <dirname>]...
-Create a shared source code directory inside the src/ directory, named <srcname>.
-Then retrieve each <url> into the subdirectory <dirname>.
-If src/<srcname> already exists, only missing <dirname>'s will be installed.
+get)
+    if [ -z "$2" ] ; then
+        echo "Usage: oetor get <srcname-version>
+Create a shared source code directory, containing a predefined list of sources.
+These will be placed in the $OEHOME_ADMIN/src/<srcname> directory.
 
-<srcname> can also be a shortcut name triggering the download of a predefined source set.
-Available predefined source sets:
-  nighltly-<version>   Nightly builds.
-  openerp-<version>    Launchpad official sources
-  ocb-<version>        Community backports sources
-
-Example: ./oetor get nightly-7.0
+Avaliable options for <srcname>:
+  nightly-<version>    OpenERP nightly build
+  openerp-<version>    OpenERP official sources from Launchpad
+  ocb-<version>        Community backports from Launchpad
 "
-		exit 0
-	fi
+        exit 0
+    fi
 
-	# Get parameters and verify directory does not exist
-	shift 1
-    SRCNAME="$1"
+    # Get parameters and verify directory does not exist
+    shift 1; SRCNAME="$1"
+    shift 1; GETMETHOD="$1"
     SRCREPO="${SRCNAME%-*}"     # "my-project-7.0" -> "my-project")
-    OEVERSION="${SRCNAME##*-}"  # "my-project-7.0" -> "7.0"
+    SRCVERSION="${SRCNAME##*-}"  # "my-project-7.0" -> "7.0"
+    if [ -z "$SRCVERSION" ] ; then
+        echo "No source version detected."
+        exit 1
+    fi; 
+
+    # Handle predefined source sets, using the get-src command
     case "$SRCREPO" in
         nightly)
-            $0 --at $OEADMIN_HOME get-tgz $SRCNAME \
-                http://nightly.openerp.com/$OEVERSION/nightly/src/openerp-$OEVERSION-latest.tar.gz
+            $0 --at $OEADMIN_HOME get-src tgz $SRCNAME \
+                http://nightly.openerp.com/$SRCVERSION/nightly/src/openerp-$SRCVERSION-latest.tar.gz server
         ;;
                 
         openerp,sources)
-            $0 --at $OEADMIN_HOME get-bzr $SRCNAME \
-                https://launchpad.net/~openerp/openobject-server/$OEVERSION server \
-                https://launchpad.net/~openerp/openobject-addons/$OEVERSION addons \
-                https://launchpad.net/~openerp/openerp-web/$OEVERSION web
+            $0 --at $OEADMIN_HOME get-src bzr $SRCNAME \
+                https://launchpad.net/~openerp/openobject-server/$SRCVERSION server \
+                https://launchpad.net/~openerp/openobject-addons/$SRCVERSION addons \
+                https://launchpad.net/~openerp/openerp-web/$SRCVERSION web
         ;;
         
        ocb)
-            $0 --at $OEADMIN_HOME get-bzr $SRCNAME \
-                https://launchpad.net/~ocb/ocb-server/$OEVERSION server \
-                https://launchpad.net/~ocb/ocb-addons/$OEVERSION addons \
-                https://launchpad.net/~ocb/ocb-web/$OEVERSION web
+            $0 --at $OEADMIN_HOME get-scr bzr $SRCNAME \
+                https://launchpad.net/~ocb/ocb-server/$SRCVERSION server \
+                https://launchpad.net/~ocb/ocb-addons/$SRCVERSION addons \
+                https://launchpad.net/~ocb/ocb-web/$SRCVERSION web
         ;; 
 
         *)  # if it's nor a predefined source, reroute to the get-bzr command
-            $0 --at $OEADMIN_HOME get-bzr $*
+            $0 --at $OEADMIN_HOME get-src bzr $*
         ;;
 
     esac
     ;;
 
 
-get,get-bzr)
-    if [ -z "$4" ] ; then
-		echo "Usage: oetor get <srcname> [<url> <dirname>]...
+get-src) ### WIP
+    # TODO @ get-src: (WIP) make get commands unified and more consistent.
+    if [ -z "$5" ] ; then
+         echo "Usage: oetor get-src <method> <srcname> [<url> <dirname>]...
 Create a shared source code directory inside the src/ directory, named <srcname>.
-Then retrieve each <url> into the subdirectory <dirname>.
-If src/<srcname> already exists, only missing <dirname>'s will be installed.
+Then, using <method>, retrieve each <url> into the subdirectory <dirname>.
+If src/<srcname> already exists, only missing <dirname>s will be installed.
+
+Available methods:
+  tgz    Download and extract a .tar.gz file from the url
+  bzr    Use a Bazaar lightweight checkout 
 "
-		exit 0
-	fi
+        exit 0
+    fi
 
-	# Get parameters and verify directory does not exist
-	shift 1
-    SRCNAME="$1"
-	OE_SRC_DIR="$OEADMIN_HOME/src/$SRCNAME"
+    # Get parameters and verify directory does not exist
+    shift 1; SRCMETHOD="$1"
+    shift 1; SRCNAME="$1"
 
-   # General case: install the provided NAME URL list of sources
-    mkdir -p "$OEADMIN_HOME/src/$SRCNAME"
+    # General case: install the provided NAME URL list of sources
+    SRCDIR="$OEADMIN_HOME/src/$SRCNAME"
+    mkdir -p "$SRCDIR"
     shift 1
+
+    # Process list os parameters
     while [ "$2" ] ; do
        URL="$1"
        NAME="$2"
        shift 2
-       if [ -d "$OE_SRC_DIR/$NAME" ] ; then
-           echo "$OE_SRC_DIR/$NAME already exists: skipping ..."
-       else	
-           echo -e "${color}Building '$OE_SRC_DIR/$NAME' with checkout from $URL ...${endColor}"
-           rm -rf $OE_SRC_DIR/~tmp
-           bzr checkout --lightweight $URL $OE_SRC_DIR/~tmp
-           mv $OE_SRC_DIR/~tmp $OE_SRC_DIR/$NAME
+       if [ -d "$SRCDIR/$NAME" ] ; then
+           echo "$SRCDIR/$NAME already exists: skipping ..."
+       else 
+           #--------
+           case "$SRCMETHOD" in
+
+                bzr)
+                    echo -e "${color}Building '$SRCDIR/$NAME' with checkout from $URL ...${endColor}"
+                    rm -rf $SRCDIR/~tmp
+                    bzr checkout --lightweight $URL $SRCDIR/~tmp
+                    mv $SRCDIR/~tmp $SRCDIR/$NAME
+                    ;;
+
+                tgz)
+                    echo -e "${color}Building '$SRCDIR/$NAME' with download from $URL ...${endColor}"
+                    # Download file
+                    wget --no-clobber -O $SRCDIR/$NAME.tar.gz $URL 
+                    # Extract file to temporary directory
+                    rm -rf $SRCDIR/~tmp
+                    mkdir -p $SRCDIR/~tmp
+                    tar xf $SRCDIR/$NAME.tar.gz --directory=$SRCDIR/~tmp
+                    # Copy extracted files to named destination
+                    # TODO: us in "update": rm -rf $SRCDIR/$NAME/*  # symlinks to here are preserved
+                    mkdir -p $SRCDIR/$NAME
+                    mv $SRCDIR/~tmp/`ls $SRCDIR/~tmp/`/* $SRCDIR/$NAME
+                    rm -rf $SRCDIR/~tmp
+                    ;;
+
+                *)
+                    echo "$SRCMETHOD is invalid."
+                    exit 1
+                    ;;
+            esac
+           #--------
        fi
-    done	
-    echo -e "$SRCNAME ready."
-    ;; 
-
-
-get-tgz)
-    # TODO @ get-tgz: (WIP) make get commands unified and more consistent.
-    if [ -z "$4" ] ; then
-		echo "Usage: oetor get-tgz  <srcname> [<url> <dirname>]..."
-		exit 0
-	fi
-
-	# Get parameters and verify directory does not exist
-	shift 1
-    SRCNAME="$1"
-	OE_DIR="$OEADMIN_HOME/src/$SRCNAME"
-    SRCURL="$2"
-
-    if [ -d "$OE_DIR" ] ; then
-        echo "Directory $OE_DIR already exists. Use 'update' instead."
-        exit 1
-    fi
-
-    echo "Retrieving sources to $OE_DIR:"
-    echo -e "${color}* Downloading $OEVERSION ...${endColor}"
-    mkdir -p $OEADMIN_HOME/src
-    wget --no-clobber $SRCURL -P $OEADMIN_HOME/src
-
-    echo -e "${color}* Uncompressing files ...${endColor}"
-    rm -rf $OEADMIN_HOME/src/~tmp
-    mkdir -p $OEADMIN_HOME/src/~tmp
-    tar xf $OEADMIN_HOME/src/openerp-$OEVERSION-latest.tar.gz --directory=$OEADMIN_HOME/src/~tmp
-    # TODO @ get-tgz: support non nightly builds (and test)
-
-    echo -e "${color}* Installing shared source files ...${endColor}"
-    rm -rf $OE_DIR/*  # symlinks to here are preserved
-    mkdir -p $OE_DIR/server
-    mv $OEADMIN_HOME/src/~tmp/`ls $OEADMIN_HOME/src/~tmp/`/* $OE_DIR/server
-    echo -e "nightly-$OEVERSION ready."
+    done    
     ;;
-
-
-
-get-nig*)
- 	if [ -z "$2" ] ; then
-	    echo "Usage: oetor get-nightly <version:7.0|6.1|trunk|...>"
-	    exit 0
-	fi
-
-    shift 1; OEVERSION="$1"
-    OE_DIR="$OEADMIN_HOME/src/nightly-$OEVERSION"
-    if [ -d "$OE_DIR" ] ; then
-        echo "Directory $OE_DIR already exists. Use 'update' instead."
-        exit 1
-    fi
-
-    echo "Retrieving nightly build sources to $OE_DIR:"
-    echo -e "${color}* Downloading $OEVERSION nightly build ...${endColor}"
-    mkdir -p $OEADMIN_HOME/src
-    wget --no-clobber http://nightly.openerp.com/$OEVERSION/nightly/src/openerp-$OEVERSION-latest.tar.gz -P $OEADMIN_HOME/src
-
-    echo -e "${color}* Uncompressing files ...${endColor}"
-    rm -rf $OEADMIN_HOME/src/~tmp
-    mkdir -p $OEADMIN_HOME/src/~tmp
-    tar xf $OEADMIN_HOME/src/openerp-$OEVERSION-latest.tar.gz --directory=$OEADMIN_HOME/src/~tmp
-
-    echo -e "${color}* Installing shared source files ...${endColor}"
-    rm -rf $OE_DIR/*  # symlinks to here are preserved
-    mkdir -p $OE_DIR/server
-    mv $OEADMIN_HOME/src/~tmp/`ls $OEADMIN_HOME/src/~tmp/`/* $OE_DIR/server
-    echo -e "nightly-$OEVERSION ready."
-    ;;
-
-
-get-sou*)
-	if [ -z "$2" ] ; then
-	    echo "Usage: oetor get-sources <version:7.0|6.1|trunk|...>"
-	    exit 0
-	fi
-
-    shift 1; OEVERSION="$1"
-
-    $0 --at $OEADMIN_HOME get sources-$OEVERSION \
-           https://launchpad.net/~openerp/openobject-server/$OEVERSION server \
-           https://launchpad.net/~openerp/openobject-addons/$OEVERSION addons \
-           https://launchpad.net/~openerp/openerp-web/$OEVERSION web
-    ;; 
-
-
-get-ocb)
-	if [ -z "$2" ] ; then
-	    echo "Usage: oetor get-ocb <version:7.0|6.1|...>"
-	    exit 0
-	fi
-
-    shift 1; OEVERSION="$1"
-
-    $0 --at $OEADMIN_HOME get ocb-$OEVERSION \
-           https://launchpad.net/~ocb/ocb-server/$OEVERSION server \
-           https://launchpad.net/~ocb/ocb-addons/$OEVERSION addons \
-           https://launchpad.net/~ocb/ocb-web/$OEVERSION web
-    ;; 
 
 
 update)
@@ -475,8 +408,8 @@ create)
             exit 1
         else
             echo "* Linking sources ..."
-	        # for DIRNAME in `cd $OEBASE && ls -d ./*/` ; do
-	        for DIRNAME in `ls -d "$OEBASE"/*/` ; do
+            # for DIRNAME in `cd $OEBASE && ls -d ./*/` ; do
+            for DIRNAME in `ls -d "$OEBASE"/*/` ; do
                 if [ ! -d "$OE_DIR/$BRANCHNAME/`basename $DIRNAME`" ] ; then
                    if [ "`basename $DIRNAME`" = "web" ] ; then
                        echo -e "  $DIRNAME"addons #-> "$OE_DIR"/"$BRANCHNAME"/"$DIRNAME"
@@ -616,7 +549,7 @@ Equivalent to:
  
     $0 --at "$OEADMIN_HOME" install $2
     $0 get-dependencies 
-    $0 --at "$OEADMIN_HOME" get-nightly 7.0 
+    $0 --at "$OEADMIN_HOME" get nightly-7.0 
     $0 --at "$OEADMIN_HOME" create v7 nightly-7.0
     ;;
 

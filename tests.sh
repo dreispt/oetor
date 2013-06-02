@@ -6,7 +6,7 @@ echo -e "\n==== test quickstart: get-deps, get-nig and create ===="
 
 echo -e "\n====  test get command ===="
 rm -rf /opt/oetest/src/oetortest-dptm
-/opt/oetest/oetor get oetortest-dptm https://launchpad.net/~department-core-editors/department-mgmt/7.0 department-mgmt
+/opt/oetest/oetor get-src bzr oetortest-dptm https://launchpad.net/~department-core-editors/department-mgmt/7.0 department-mgmt
 
 echo -e "\n====  test create, no addons case ===="
 rm -rf /opt/oetest/oetortest
