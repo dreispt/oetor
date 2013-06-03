@@ -42,10 +42,8 @@ Commands available:
   get-dependencies  Install system dependencies and PostgreSQL db server (needs sudo).
   fake-smtp         Launch a debug SMTP server printing to stdout (needs sudo).
 
-  get-nightly       Retrieve source code from nightly builds repository. 
-  get-sources       Retrieve source code from Launchpad official repositories.
-  get-ocb           Retrieve source code from Launchpad community backport repositories.
-  get               Retrieve source code from custom locations.
+  get               Retrieve predefined source code sets into shared repository.
+  get-src           Retrieve custom defined source code into shared repository.
   update            Update sources with most recent versions.
   version           Display sources versions or revision numbers.
 
