@@ -44,7 +44,6 @@ Commands available:
 
   get               Retrieve predefined source code sets into shared repository.
   get-src           Retrieve custom defined source code into shared repository.
-  update            Update sources with most recent versions.
   version           Display sources versions or revision numbers.
 
   create            Create an OpenERP instance.
@@ -158,22 +157,30 @@ Install system dependencies and PostgreSQL database server (needs sudo).
 
 
 get)
-    if [ -z "$2" ] ; then
-        echo "Usage: oetor get <srcname-version>
+    if [ "$2" = "--help" ] ; then
+        echo "Usage: oetor get <srcname-version> [--update]
 Create a shared source code directory, containing a predefined list of sources.
-These will be placed in the $OEHOME_ADMIN/src/<srcname> directory.
+These will be retrieved and placed inside the $OEHOME_ADMIN/src/<srcname> directory.
 
 Avaliable options for <srcname>:
   nightly-<version>    OpenERP nightly build
   openerp-<version>    OpenERP official sources from Launchpad
   ocb-<version>        Community backports from Launchpad
+
+If a destination directory already exists, the download is skipped.
+To force it to be updated, use the --update option.
 "
+        exit 0
+    fi
+    if [ -z "$2" ] ; then
+        echo "Usage: oetor get <srcname-version> [--update]"
         exit 0
     fi
 
     # Get parameters and verify directory does not exist
     shift 1; SRCNAME="$1"
     shift 1; GETMETHOD="$1"
+    shift 1; SRCUPDATE="$1"
     SRCREPO="${SRCNAME%-*}"     # "my-project-7.0" -> "my-project")
     SRCVERSION="${SRCNAME##*-}"  # "my-project-7.0" -> "7.0"
     if [ -z "$SRCVERSION" ] ; then
@@ -184,26 +191,26 @@ Avaliable options for <srcname>:
     # Handle predefined source sets, using the get-src command
     case "$SRCREPO" in
         nightly)
-            $0 --at $OEADMIN_HOME get-src tgz $SRCNAME \
+            $0 --at $OEADMIN_HOME get-src tgz $SRCUPDATE $SRCNAME \
                 http://nightly.openerp.com/$SRCVERSION/nightly/src/openerp-$SRCVERSION-latest.tar.gz server
         ;;
                 
         openerp,sources)
-            $0 --at $OEADMIN_HOME get-src bzr $SRCNAME \
+            $0 --at $OEADMIN_HOME get-src bzr $SRCUPDATE $SRCNAME \
                 https://launchpad.net/~openerp/openobject-server/$SRCVERSION server \
                 https://launchpad.net/~openerp/openobject-addons/$SRCVERSION addons \
                 https://launchpad.net/~openerp/openerp-web/$SRCVERSION web
         ;;
         
        ocb)
-            $0 --at $OEADMIN_HOME get-scr bzr $SRCNAME \
+            $0 --at $OEADMIN_HOME get-scr bzr $SRCUPDATE $SRCNAME \
                 https://launchpad.net/~ocb/ocb-server/$SRCVERSION server \
                 https://launchpad.net/~ocb/ocb-addons/$SRCVERSION addons \
                 https://launchpad.net/~ocb/ocb-web/$SRCVERSION web
         ;; 
 
-        *)  # if it's nor a predefined source, reroute to the get-bzr command
-            $0 --at $OEADMIN_HOME get-src bzr $*
+        *)  # if it's not a predefined source, reroute to the get-bzr command
+            $0 --at $OEADMIN_HOME get-src bzr $SRCUPDATE $*
         ;;
 
     esac
@@ -211,21 +218,34 @@ Avaliable options for <srcname>:
 
 
 get-src)
-    if [ -z "$5" ] ; then
-        echo "Usage: oetor get-src <method> <srcname> [<url> <dirname>]...
+    # TODO: add support for simple bzr update
+    if [ "$2" = "--help" ] ; then
+         echo "Usage: oetor get-src <method> [--update] <srcname> [<url> <dirname>]...
 Create a shared source code directory inside the src/ directory, named <srcname>.
 Then, using <method>, retrieve each <url> into the subdirectory <dirname>.
 If src/<srcname> already exists, only missing <dirname>s will be installed.
 
 Available methods:
-  tgz    Download and extract a .tar.gz file from the url
   bzr    Use a Bazaar lightweight checkout 
+  tgz    Download and extract a .tar.gz file from the url
+
+If a destination directory already exists, the download is skipped.
+To force it to be updated, use the --update option.
 "
+        exit 0
+    fi
+    if [ -z "$4" ] ; then
+        echo "Usage: oetor get-src <method> [--update] <srcname> [<url> <dirname>]..."
         exit 0
     fi
 
     # Get parameters and verify directory does not exist
     shift 1; SRCMETHOD="$1"
+    if [ "$2" = "--update" ] ; then
+        shift 1; SRCUPDATE="$1"
+    else
+        SRCUPDATE=""
+    fi
     shift 1; SRCNAME="$1"
 
     # General case: install the provided NAME URL list of sources
@@ -235,35 +255,47 @@ Available methods:
 
     # Process list os parameters
     while [ "$2" ] ; do
-       URL="$1"
-       NAME="$2"
-       shift 2
-       if [ -d "$SRCDIR/$NAME" ] ; then
-           echo "$SRCDIR/$NAME already exists: skipping ..."
-       else 
-           #--------
-           case "$SRCMETHOD" in
+        URL="$1"
+        NAME="$2"
+        shift 2
+            #--------
+            case "$SRCMETHOD" in
 
                 bzr)
-                    echo -e "${color}Building '$SRCDIR/$NAME' with checkout from $URL ...${endColor}"
-                    rm -rf $SRCDIR/~tmp
-                    bzr checkout --lightweight $URL $SRCDIR/~tmp
-                    mv $SRCDIR/~tmp $SRCDIR/$NAME
+                    if [ "$SRCUPDATE" = "--update" ] ; then
+                        echo -e "Updating $DIRNAME..."
+                        bzr update "$DIRNAME"
+                    else
+                        if [ -d "$SRCDIR/$NAME" ] ; then
+                           echo "$SRCDIR/$NAME already exists: skipping ..."
+                        else 
+                            echo -e "${color}Building '$SRCDIR/$NAME' with checkout from $URL ...${endColor}"
+                            rm -rf $SRCDIR/~tmp
+                            bzr checkout --lightweight $URL $SRCDIR/~tmp
+                            mv $SRCDIR/~tmp $SRCDIR/$NAME
+                        fi 
+                    fi
                     ;;
 
                 tgz)
-                    echo -e "${color}Building '$SRCDIR/$NAME' with download from $URL ...${endColor}"
+                    echo -e "${color}Downloading $URL ...${endColor}"
                     # Download file
+                    [ "$SRCUPDATE" = "--update" ] && rm $SRCDIR/$NAME.tar.gz 
                     wget --no-clobber -O $SRCDIR/$NAME.tar.gz $URL 
-                    # Extract file to temporary directory
-                    rm -rf $SRCDIR/~tmp
-                    mkdir -p $SRCDIR/~tmp
-                    tar xf $SRCDIR/$NAME.tar.gz --directory=$SRCDIR/~tmp
-                    # Copy extracted files to named destination
-                    # TODO: us in "update": rm -rf $SRCDIR/$NAME/*  # symlinks to here are preserved
-                    mkdir -p $SRCDIR/$NAME
-                    mv $SRCDIR/~tmp/`ls $SRCDIR/~tmp/`/* $SRCDIR/$NAME
-                    rm -rf $SRCDIR/~tmp
+                    if [ ! $? = 0 ] ; then
+                        exit 1
+                    else
+                        # Extract file to temporary directory
+                        echo "Extracting downlaod to $SRCDIR/$NAME ..."
+                        rm -rf $SRCDIR/~tmp
+                        mkdir -p $SRCDIR/~tmp
+                        tar xf $SRCDIR/$NAME.tar.gz --directory=$SRCDIR/~tmp
+                        # Copy extracted files to named destination
+                        mkdir -p $SRCDIR/$NAME
+                        [ "$SRCUPDATE" = "--update" ] && rm -rf $SRCDIR/$NAME/*
+                        mv $SRCDIR/~tmp/`ls $SRCDIR/~tmp/`/* $SRCDIR/$NAME
+                        rm -rf $SRCDIR/~tmp
+                    fi
                     ;;
 
                 *)
@@ -271,37 +303,8 @@ Available methods:
                     exit 1
                     ;;
             esac
-           #--------
-       fi
+            #--------
     done    
-    ;;
-
-
-update)
-    #--------------------------------------------------
-    # Update the sources downloaded with "get-source"
-    #--------------------------------------------------
-    if [ -z "$2" ] ; then
-        echo "Usage: oetor update <fullpath1/> [<fullpath2/> ...]" 
-        exit 0
-    fi
-            
-    # TODO: update - allow update of  nightly build src repos
-    shift 1
-    while [ "$1" ] ; 
-    do
-        REPODIR="`echo $1 | sed 's/\/$//'`"  # remove trailing slash
-        if [ ! -d "$REPODIR" ] ; then
-            echo "WARNING: $REPODIR not found."
-        else
-           for DIRNAME in `ls -d "$REPODIR"/*/` ; do
-              echo -e "Updating $DIRNAME..."
-              bzr update "$DIRNAME"
-           done
-        fi
-        shift 1
-    done
-    # echo "Sources updated."
     ;;
 
 
