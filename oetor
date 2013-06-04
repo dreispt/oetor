@@ -236,14 +236,14 @@ get-src)
          echo "Usage: oetor get-src <method> [--update] <srcname> [<url> <dirname>]...
 Create a shared source code directory inside the src/ directory, named <srcname>.
 Then, using <method>, retrieve each <url> into the subdirectory <dirname>.
-If src/<srcname> already exists, only missing <dirname>s will be installed.
 
 Available methods:
   bzr    Use a Bazaar lightweight checkout 
   tgz    Download and extract a .tar.gz file from the url
 
-If a destination directory already exists, the download is skipped.
-To force it to be updated, use the --update option.
+If src/<srcname> already exists, only missing <dirname>s will be installed.
+When using the tgz method, the --update option replaces existing directories
+with the downloaded version.
 "
         exit 0
     fi
@@ -256,6 +256,11 @@ To force it to be updated, use the --update option.
     shift 1; SRCMETHOD="$1"
     if [ "$2" = "--update" ] ; then
         shift 1; SRCUPDATE="$1"
+        if [ ! "$SRCMETHOD" = "tgz" ]
+            echo "The --update option is only valid for the tgz method."
+            echo " Use the 'update' command instead."
+            exit 1 
+        fi
     else
         SRCUPDATE=""
     fi
@@ -275,19 +280,14 @@ To force it to be updated, use the --update option.
             case "$SRCMETHOD" in
 
                 bzr)
-                    if [ "$SRCUPDATE" = "--update" ] ; then
-                        echo -e "Updating $DIRNAME..."
-                        bzr update "$DIRNAME"
-                    else
-                        if [ -d "$SRCDIR/$NAME" ] ; then
-                           echo "$SRCDIR/$NAME already exists: skipping ..."
-                        else 
-                            echo -e "${color}Building '$SRCDIR/$NAME' with checkout from $URL ...${endColor}"
-                            rm -rf $SRCDIR/~tmp
-                            bzr checkout --lightweight $URL $SRCDIR/~tmp
-                            mv $SRCDIR/~tmp $SRCDIR/$NAME
-                        fi 
-                    fi
+                    if [ -d "$SRCDIR/$NAME" ] ; then
+                       echo "$SRCDIR/$NAME already exists: skipping ..."
+                    else 
+                        echo -e "${color}Building '$SRCDIR/$NAME' with checkout from $URL ...${endColor}"
+                        rm -rf $SRCDIR/~tmp
+                        bzr checkout --lightweight $URL $SRCDIR/~tmp
+                        mv $SRCDIR/~tmp $SRCDIR/$NAME
+                    fi 
                     ;;
 
                 tgz)
@@ -322,7 +322,6 @@ To force it to be updated, use the --update option.
 
 
 update)
-    # TODO(low): add support to other vcs - git,hg.
     if [ -z "$2" ] ; then
         echo "Usage: oetor update <fullpath1/> [<fullpath2/> ...]" 
         exit 0
@@ -331,7 +330,7 @@ update)
     shift 1
     while [ "$1" ] ; 
     do
-        REPODIR="`echo $1 | sed 's/\/$//'`"  # remove trailing slash
+        REPODIR="`echo $1 | sed 's/\/$//'`"  # removes trailing slash
         if [ ! -d "$REPODIR" ] ; then
             echo "WARNING: $REPODIR not found."
         else
@@ -385,23 +384,23 @@ fake-smtp)
 
 
 create)
-    #--------------------------------------------------
-    # Create a new server Instance and setup a Branch
-    # It's meant to be used through `create` and `branch`, but can also be used directly
-    #--------------------------------------------------
-
+    if [ "$2" = "--help" ] ; then
+        echo "Usage: oetor create <instance> <src-fullpath> [PORT] [FIXED_PARAMS]"
+        echo "Create an OpenERP instance.
+    <instance>  is the identifying name for the instance
+    <src>       is the directory name ('nightly-7.0') or full path ('/opt/openerp/src/nightly-7.0')
+                to get the instance's server and addons source code.
+                Use --no-src if none is to be used.
+    [PORT]      optional port number for the instance, defaulting to 8069
+    [PARAMS]    list of additional server parameters to include in it's start script
+";      exit 0
+    fi
     # Check minimun parameters supplied
     if [ -z "$3" ] ; then
         echo "Usage: oetor create <instance> <src-fullpath> [PORT] [FIXED_PARAMS]"
         exit 0
     fi
 
-# TODO: create - add documentation
-#  create            Create an OpenERP instance named "NAME" and
-#                    listening at port "PORT". If additional "FIXED_OPTIONS" are
-#                    provided, they will be included in the generated 'start'
-#                    script.
- 
     # Get version and instance name
     shift 1
     INSTANCE="$1"
@@ -413,7 +412,6 @@ create)
     shift 1
     OEBASE="`echo $1 | sed 's/\/$//'`"  # remove trailing slash
     if [ "$OEBASE" = "--no-src" ] ; then
-        # TODO: document the --no-src option
         OEBASE=""
     else
         if [ -d "$OEADMIN_HOME/src/$OEBASE" ] ; then
@@ -474,6 +472,7 @@ create)
     fi
 
     #create database
+    # TODO: create - on user login, initial database is not the instance's db
     if [ ! `psql $INSTANCE -tc "select 1" 2>/dev/null` ] ; then
         echo "* Creating instance database" "$BRANCHNAME"-"$INSTANCE" "..."
         createdb "$BRANCHNAME"-"$INSTANCE"
@@ -482,10 +481,9 @@ create)
     #--------------------------------------------------
     # - create config
     #--------------------------------------------------
-    # TODO: create - on user login, initial database is not the instance's db
     if [ ! -f "$OE_DIR/openerp-server.conf" ] ; then
         echo "* Creating instance config file ..."
-        #TODO: better conf file (?)
+        #TODO(low): better conf file
         echo "[options]
 ; This is the password that allows database operations:
 ; admin_passwd = admin
@@ -524,7 +522,6 @@ To use it browse: http://`hostname`:$PORT
    ;;
 
 
-   
 # TODO: branch - add copy/branch feature (?)
 # TODO: install-all - add install all modules feature
 install-all)
