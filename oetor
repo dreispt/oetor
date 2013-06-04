@@ -232,7 +232,6 @@ To force it to be updated, use the --update option.
 
 
 get-src)
-    # TODO: add support for simple bzr update
     if [ "$2" = "--help" ] ; then
          echo "Usage: oetor get-src <method> [--update] <srcname> [<url> <dirname>]...
 Create a shared source code directory inside the src/ directory, named <srcname>.
@@ -323,15 +322,12 @@ To force it to be updated, use the --update option.
 
 
 update)
-    #--------------------------------------------------
-    # Update the sources downloaded with "get-source"
-    #--------------------------------------------------
+    # TODO(low): add support to other vcs - git,hg.
     if [ -z "$2" ] ; then
         echo "Usage: oetor update <fullpath1/> [<fullpath2/> ...]" 
         exit 0
     fi
             
-    # TODO: update - allow update of  nightly build src repos
     shift 1
     while [ "$1" ] ; 
     do
@@ -340,13 +336,16 @@ update)
             echo "WARNING: $REPODIR not found."
         else
            for DIRNAME in `ls -d "$REPODIR"/*/` ; do
-              echo -e "Updating $DIRNAME..."
-              bzr update "$DIRNAME"
+               if [ -d "$DIRNAME".bzr ] ; then
+                  echo -e "Updating $DIRNAME..."
+                  bzr update "$DIRNAME"
+               else
+                  echo -e "(skipping $DIRNAME)"
+               fi 
            done
         fi
         shift 1
     done
-    # echo "Sources updated."
     ;;
 
 
