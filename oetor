@@ -44,6 +44,7 @@ Commands available:
 
   get               Retrieve predefined source code sets into shared repository.
   get-src           Retrieve custom defined source code into shared repository.
+  update            Update sources with most recent versions.
   version           Display sources versions or revision numbers.
 
   create            Create an OpenERP instance.
@@ -305,6 +306,34 @@ To force it to be updated, use the --update option.
             esac
             #--------
     done    
+    ;;
+
+
+update)
+    #--------------------------------------------------
+    # Update the sources downloaded with "get-source"
+    #--------------------------------------------------
+    if [ -z "$2" ] ; then
+        echo "Usage: oetor update <fullpath1/> [<fullpath2/> ...]" 
+        exit 0
+    fi
+            
+    # TODO: update - allow update of  nightly build src repos
+    shift 1
+    while [ "$1" ] ; 
+    do
+        REPODIR="`echo $1 | sed 's/\/$//'`"  # remove trailing slash
+        if [ ! -d "$REPODIR" ] ; then
+            echo "WARNING: $REPODIR not found."
+        else
+           for DIRNAME in `ls -d "$REPODIR"/*/` ; do
+              echo -e "Updating $DIRNAME..."
+              bzr update "$DIRNAME"
+           done
+        fi
+        shift 1
+    done
+    # echo "Sources updated."
     ;;
 
 
