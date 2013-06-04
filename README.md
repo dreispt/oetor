@@ -107,6 +107,7 @@ Here is how source code directories and server instances are organized:
                                    ###$ ./install.sh
         /opt/openerp               # HOME directory
           |- oetor                 # oetor script
+          |- /env                   # generic virtualenv
           |- /src                  # shared SOURCE REPOSITORY
           |    |- /nightly-7.0       # a SOURCE DIR, from nightly builds
           |    |    |- /server
@@ -125,18 +126,22 @@ Here is how source code directories and server instances are organized:
           |    |- openerp-server.conf 
           |    |- /main
           |    |    |- start         # script to start this server
+          |    |    |- /env          # python virtualenv used (symlinked)
           |    |    |- /server       # server sources: symlinked to dir in /opt/openerp/src
-          |    |    |- /addons 
+          |    |    | 
+          |    |    |- /addons       # ... as many module directories as needed
           |    |    |- /web
           |    |    |- /projx
           |    |    ... 
           |    |
           |    |- /branchz           # instance source code (version z)
           |    |    |- start         # script to start this server
+          |    |    |- /env          # python virtualenv used (symlinked)
           |    |    |- /server       # server sources: symlinked to dir in /opt/openerp/src
+          |    |    | 
           |    |    |- /addons 
           |    |    |- /web
-          |    |    |- /projxz
+          |    |    |- /projx-z       # trying projx version z
           |    |    ... 
           |    |
           |    ...                 # ...add as many branches as needed

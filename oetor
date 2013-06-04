@@ -91,7 +91,7 @@ the install directory, by repeating the install command on a oetor's newer versi
     if [ -z "$OE_DIR" ] ; then
         OE_DIR="$OEADMIN_HOME"
     fi
-    OEDIR="`echo $OEDIR | sed 's/\/$//'`"  # remove trailing slash
+    OEDIR="`echo $OE_DIR | sed 's/\/$//'`"  # remove trailing slash
     echo "Will install into $OE_DIR for user $OEADMIN_USER"
 
     if [ ! -d /var/log$OE_DIR ] ; then
@@ -114,6 +114,29 @@ the install directory, by repeating the install command on a oetor's newer versi
     # Create psql role
     sudo su -c "createuser --createdb --no-createrole --no-superuser $OEADMIN_USER" postgres 2>/dev/null \
         && echo "* Created database role $OEADMIN_USER"
+
+    # pypi packages system dependencies
+    yes | sudo apt-get install python-dev libldap2-dev libsasl2-dev libssl-dev  #python-ldap
+    yes | sudo apt-get install libxml2-dev libxslt1-dev  # lxml
+    yes | sudo apt-get install postgresql-server-dev-all  # psycopg2
+
+    # setup virtualenv
+    echo "Creating virtualenv at $OE_DIR/env"
+    virtualenv $OE_DIR/env
+    source $OE_DIR/env/bin/activate
+
+    # install pydot pi packages (requires this specific version)
+    easy_install pyparsing==1.5.7 
+    easy_install pydot
+
+    # pychart not on pypi
+    pip install http://download.gna.org/pychart/PyChart-1.39.tar.gz
+
+    # regular pypi packages
+    pip install python-dateutil docutils feedparser gdata jinja2 \
+        python-ldap pyxslt lxml mako mock python-openid PIL psycopg2 psutil babel \
+        reportlab simplejson pytz unittest2 vatnumber \
+        vobject pywebdav werkzeug xlwt pyyaml zsi 
     ;;
 
 
@@ -142,16 +165,6 @@ Install system dependencies and PostgreSQL database server (needs sudo).
     python-pychart python-pydot python-pyparsing python-reportlab python-simplejson \
     python-tz python-unittest2 python-vatnumber python-vobject python-webdav \
     python-werkzeug python-xlwt python-yaml python-zsi
-
-    #echo -e "\n---- Install python libraries ----"
-    #sudo pip install gdata
-
-    # setup virtualenv
-    virtualenv $OEADMIN_HOME/env
-    source $OEADMIN_HOME/env/activate
-    pip install dateutil docutils feedparser gdata jinja2 ldap libxslt1 lxml mako mock \
-    openid psycopg2 psutil pybabel pychart pydot pyparsing reportlab simplejson \
-    tz unittest2 vatnumber vobject webdav werkzeug xlwt yaml zsi 
 
     echo -e "Done."
     ;;
@@ -489,9 +502,9 @@ log_handler = ['werkzeug:CRITICAL']
     
     # TODO: create - add create database to start script
     if [ ! -f "$OE_DIR/$BRANCHNAME/start" ] ; then
-        echo "# start server script
+        echo "# start server script ($OEADMIN_VERSION)
 INSTANCEPATH=\$(cd \`dirname \$0\` && pwd) 
-ADDONSPATH=\"\`ls -d1 \$INSTANCEPATH/*/ | grep -v '/server/$' | awk -vORS=, '{print \$1}' | sed 's/\/,/,/g' | sed 's/,\$//g'\`\"
+ADDONSPATH=\"\`ls -d1 \$INSTANCEPATH/*/ | grep -v '/server/$' | grep -v '/env/$' | awk -vORS=, '{print \$1}' | sed 's/\/,/,/g' | sed 's/,\$//g'\`\"
 source \$INSTANCEPATH/env/bin/activate
 if [ ! -z \"\$ADDONSPATH\" ] ; then 
   \$INSTANCEPATH/server/openerp-server --xmlrpc-port=$PORT --addons-path=\"\$ADDONSPATH\" $* \$*
