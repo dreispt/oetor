@@ -75,10 +75,8 @@ install)
     # NOTE: administrator pivilege needed
     #--------------------------------------------------
 
-    shift 1
-    OE_DIR="$1"
-    if [ "$OE_DIR" = "--help" ] ; then
-        echo "Usage: oetor install [directory]
+    if [ "$2" = "--help" ] ; then
+        echo "Usage: oetor install [--virtualenv] [directory]
 Create directory structure and db role for current user (may need sudo privilege).
 The install destinations is /opt/openerp, unless a specific directory is indicatted.
 
@@ -87,6 +85,14 @@ overwritten in case it already exists. This can be used to update the script in
 the install directory, by repeating the install command on a oetor's newer version.
 "
         exit 0
+    fi
+
+    shift 1; OE_DIR="$1"
+    if [ "$1" = "--virtualenv" ] ; then
+        OE_VIRTUALENV="yes"
+        shift 1; OE_DIR="$1"
+    else
+        OE_VIRTUALENV=""
     fi
     if [ -z "$OE_DIR" ] ; then
         OE_DIR="$OEADMIN_HOME"
@@ -115,30 +121,32 @@ the install directory, by repeating the install command on a oetor's newer versi
     sudo su -c "createuser --createdb --no-createrole --no-superuser $OEADMIN_USER" postgres 2>/dev/null \
         && echo "* Created database role $OEADMIN_USER"
 
-    # pypi packages system dependencies
-    yes | sudo apt-get install python-dev libldap2-dev libsasl2-dev libssl-dev  #python-ldap
-    yes | sudo apt-get install libxml2-dev libxslt1-dev  # lxml
-    yes | sudo apt-get install postgresql-server-dev-all  # psycopg2
+    if [ ! -z "$OE_VIRTUALENV" ] ; then
+        # pypi packages system dependencies
+        yes | sudo apt-get install python-dev libldap2-dev libsasl2-dev libssl-dev  #python-ldap
+        yes | sudo apt-get install libxml2-dev libxslt1-dev  # lxml
+        yes | sudo apt-get install postgresql-server-dev-all  # psycopg2
 
-    # setup virtualenv
-    echo "Creating virtualenv at $OE_DIR/env"
-    virtualenv $OE_DIR/env
-    source $OE_DIR/env/bin/activate
+        # setup virtualenv
+        echo "Creating virtualenv at $OE_DIR/env"
+        virtualenv $OE_DIR/env
+        source $OE_DIR/env/bin/activate
 
-    #TODO(low), install: allow to use a package requirement file 
-    # install pydot pi packages (requires this specific version)
-    easy_install -q pyparsing==1.5.7 
-    easy_install -q pydot
+        #TODO(low), install: allow to use a package requirement file 
+        # install pydot pi packages (requires this specific version)
+        easy_install -q pyparsing==1.5.7 
+        easy_install -q pydot
 
-    # pychart not on pypi
-    pip install -q http://download.gna.org/pychart/PyChart-1.39.tar.gz
+        # pychart not on pypi
+        pip install -q http://download.gna.org/pychart/PyChart-1.39.tar.gz
 
-    # regular pypi packages
-    pip install -q python-dateutil docutils feedparser gdata jinja2 \
-        python-ldap pyxslt lxml mako mock python-openid PIL psycopg2 psutil babel \
-        reportlab simplejson pytz unittest2 vatnumber \
-        vobject pywebdav werkzeug xlwt pyyaml 
-    # pip install zsi  # fails... 
+        # regular pypi packages
+        pip install -q python-dateutil docutils feedparser gdata jinja2 \
+            python-ldap pyxslt lxml mako mock python-openid PIL psycopg2 psutil babel \
+            reportlab simplejson pytz unittest2 vatnumber \
+            vobject pywebdav werkzeug xlwt pyyaml 
+        # pip install zsi  # fails... 
+        fi
     ;;
 
 
@@ -448,7 +456,7 @@ create)
     if [ ! -d "$OE_DIR/$BRANCHNAME" ] ; then
         echo "* Creating instance directory ..."
         mkdir -p "$OE_DIR/$BRANCHNAME"
-        ln -s $OEADMIN_HOME/env $OE_DIR/$BRANCHNAME/env
+        [ -d "$OEADMIN_HOME/env" ] && ln -s $OEADMIN_HOME/env $OE_DIR/$BRANCHNAME/env
     fi
 
     # Create symlink to server source
@@ -506,7 +514,7 @@ log_handler = ['werkzeug:CRITICAL']
 INSTANCEPATH=\$(cd \`dirname \$0\` && pwd) 
 ADDONSPATH=\"\`ls -d1 \$INSTANCEPATH/*/ | grep -v '/server/$' | grep -v '/env/$' | awk -vORS=, '{print \$1}' | sed 's/\/,/,/g' | sed 's/,\$//g'\`\"
 DBNAME=\"\`basename \$INSTANCEPATH\`-\`basename \$(dirname \$INSTANCEPATH)\`\"
-source \$INSTANCEPATH/env/bin/activate
+[ -d \$INSTANCEPATH/env ] && source \$INSTANCEPATH/env/bin/activate
 if [ ! -z \"\$ADDONSPATH\" ] ; then 
   \$INSTANCEPATH/server/openerp-server --xmlrpc-port=$PORT -d \$DBNAME --addons-path=\"\$ADDONSPATH\" $* \$*
 else
@@ -617,3 +625,4 @@ Equivalent to:
 
 
 esac
+exit 0
