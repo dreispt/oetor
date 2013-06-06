@@ -87,6 +87,7 @@ the install directory, by repeating the install command on a oetor's newer versi
         exit 0
     fi
 
+    # Parsing parameters
     shift 1; OE_DIR="$1"
     if [ "$1" = "--virtualenv" ] ; then
         OE_VIRTUALENV="yes"
@@ -100,27 +101,33 @@ the install directory, by repeating the install command on a oetor's newer versi
     OEDIR="`echo $OE_DIR | sed 's/\/$//'`"  # remove trailing slash
     echo "Will install into $OE_DIR for user $OEADMIN_USER"
 
-    if [ ! -d /var/log$OE_DIR ] ; then
-        echo -e "* Creating base log directory /var/log$OE_DIR ..."
-        sudo mkdir -p /var/log$OE_DIR
-        sudo chown $OEADMIN_USER:root /var/log$OE_DIR
-    fi
+    # Create user, group and postgres role
+    echo -e "* Creating system and databse users (sudo needed)..."
+    sudo groupadd "$OEADMIN_USER" 2>/dev/null \
+      &&  echo -e "* Created user group  $OEADMIN_USER"
+    sudo usermod -a -G "$OEADMIN_USER" "$OEADMIN_USER" 2>/dev/null
+    sudo su -c "createuser --createdb --createrole --no-superuser $OEADMIN_USER" postgres 2>/dev/null \
+      && echo "* Created database role $OEADMIN_USER"
 
-    if [ ! -d $OE_DIR ] ; then
-        echo -e "* Creating oetor home $OE_DIR for user $OEADMIN_USER ..."
-        sudo mkdir -p $OE_DIR/src
-        sudo chown -R $OEADMIN_USER $OE_DIR
-    fi
+    # Create log directories (not used for now)
+    #if [ ! -d /var/log$OE_DIR ] ; then
+    #    echo -e "* Creating base log directory /var/log$OE_DIR ..."
+    #    sudo mkdir -p /var/log$OE_DIR
+    #    sudo chown $OEADMIN_USER:$OEADMIN_USER /var/log$OE_DIR
+    #fi
 
+    # Create home directory
+    [ ! -d $OE_DIR ] &&  echo -e "* Creating oetor home $OE_DIR for user $OEADMIN_USER ..."
+    sudo mkdir -p $OE_DIR/src
+    sudo chown -R $OEADMIN_USER:$OEADMIN_USER $OE_DIR
+
+    # Install or update home's oetor script
     echo -e "* Installing this oetor script to directory $OE_DIR ..."
     cp "$0" $OE_DIR/oetor
     chmod +x $OE_DIR/oetor
-    chown $OEADMIN_USER $OE_DIR/oetor
+    chown $OEADMIN_USER:$OEADMIN_USER $OE_DIR/oetor
 
-    # Create psql role
-    sudo su -c "createuser --createdb --createrole --no-superuser $OEADMIN_USER" postgres 2>/dev/null \
-        && echo "* Created database role $OEADMIN_USER"
-
+    # TODO(experimental): Setup shared virtualenv
     if [ ! -z "$OE_VIRTUALENV" ] ; then
         # pypi packages system dependencies
         yes | sudo apt-get install python-dev libldap2-dev libsasl2-dev libssl-dev  #python-ldap
@@ -146,7 +153,7 @@ the install directory, by repeating the install command on a oetor's newer versi
             reportlab simplejson pytz unittest2 vatnumber \
             vobject pywebdav werkzeug xlwt pyyaml 
         # pip install zsi  # fails... 
-        fi
+    fi
     ;;
 
 
