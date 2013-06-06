@@ -102,7 +102,7 @@ the install directory, by repeating the install command on a oetor's newer versi
     echo "Will install into $OE_DIR for user $OEADMIN_USER"
 
     # Create user, group and postgres role
-    echo -e "* Creating system and databse users (sudo needed)..."
+    echo -e "* Creating system and database users (sudo needed)..."
     sudo groupadd "$OEADMIN_USER" 2>/dev/null \
       &&  echo -e "* Created user group  $OEADMIN_USER"
     sudo usermod -a -G "$OEADMIN_USER" "$OEADMIN_USER" 2>/dev/null
@@ -129,14 +129,9 @@ the install directory, by repeating the install command on a oetor's newer versi
 
     # TODO(experimental): Setup shared virtualenv
     if [ ! -z "$OE_VIRTUALENV" ] ; then
-        # pypi packages system dependencies
-        yes | sudo apt-get install python-dev libldap2-dev libsasl2-dev libssl-dev  #python-ldap
-        yes | sudo apt-get install libxml2-dev libxslt1-dev  # lxml
-        yes | sudo apt-get install postgresql-server-dev-all  # psycopg2
-
         # setup virtualenv
         echo "Creating virtualenv at $OE_DIR/env"
-        virtualenv $OE_DIR/env
+        virtualenv --no-site-packages $OE_DIR/env
         source $OE_DIR/env/bin/activate
 
         #TODO(low), install: allow to use a package requirement file 
@@ -173,7 +168,7 @@ Install system dependencies and PostgreSQL database server (needs sudo).
     sudo apt-get install postgresql
 
     echo -e "---- Installing system packages ----"
-    yes | sudo apt-get install bzr bzrtools python-pip python-virtualenv 
+    yes | sudo apt-get install bzr bzrtools 
 
     echo -e "---- Installing python packages ----"
     yes | sudo apt-get install python-dateutil python-docutils python-feedparser \
@@ -181,17 +176,21 @@ Install system dependencies and PostgreSQL database server (needs sudo).
     python-mock python-openid python-psycopg2 python-psutil python-pybabel \
     python-pychart python-pydot python-pyparsing python-reportlab python-simplejson \
     python-tz python-unittest2 python-vatnumber python-vobject python-webdav \
-    python-werkzeug python-xlwt python-yaml python-zsi
+    python-werkzeug python-xlwt python-yaml python-zsi 
+    
+    # virtualenv: pypi packages system dependencies 
+    yes | sudo apt-get install python-pip python-virtualenv 
+    yes | sudo apt-get install python-dev libldap2-dev libsasl2-dev libssl-dev  #python-ldap 
+    yes | sudo apt-get install libxml2-dev libxslt1-dev  # lxml 
+    yes | sudo apt-get install postgresql-server-dev-all  # psycopg2 
+    echo -e "Done." 
+    ;; 
 
-    echo -e "Done."
-    ;;
 
-
-get)
-    if [ "$2" = "--help" ] ; then
+get) 
+    if [ "$2" = "--help" ] ; then 
         echo "Usage: oetor get <srcname-version> [--update]
 Create a shared source code directory, containing a predefined list of sources.
-These will be retrieved and placed inside the $OEHOME_ADMIN/src/<srcname> directory.
 
 Avaliable options for <srcname>:
   nightly-<version>    OpenERP nightly build
