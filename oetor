@@ -110,6 +110,17 @@ the install directory, by repeating the install command on a oetor's newer versi
     sudo su -c "createuser --createdb --createrole --no-superuser $OEADMIN_USER" postgres 2>/dev/null \
       && echo "* Created database role $OEADMIN_USER"
 
+    # Add installing user to sudoers, to impoersonate group users without passord
+    # This allows start scripts can run isolated servers
+    if [ -z "`sudo grep -w "^$OEADMIN_USER" /etc/sudoers`" ] ; then
+        echo "Adding $OEADMIN_USER to sudoers..."
+        sudo cp /etc/sudoers /etc/sudoers.oetor
+        sudo chown "$OEADMIN_USER" /etc/sudoers.oetor && sudo chmod u+w /etc/sudoers.oetor
+        sudo echo -e "$OEADMIN_USER\tALL=(%$OEADMIN_NAME) NOPASSWD: ALL" >> /etc/sudoers.oetor
+        sudo chmod u-w /etc/sudoers.oetor && sudo chown root /etc/sudoers.oetor
+        sudo visudo -c -s -q -f /etc/sudoers.oetor && sudo cp /etc/sudoers.oetor /etc/sudoers
+    fi
+
     # Create log directories (not used for now)
     #if [ ! -d /var/log$OE_DIR ] ; then
     #    echo -e "* Creating base log directory /var/log$OE_DIR ..."
