@@ -559,31 +559,34 @@ To use it browse: http://`hostname`:$PORT
    ;;
 
 
-# TODO: branch - add copy/branch feature (?)
-# TODO: install-all - add install all modules feature
 install-all)
-    echo "NOT IMPLEMENTED"
-    exit 1
     #--------------------------------------------------
-    if [ -z "$4" ] ; then
-        echo "usage: oetor install INSTANCE BRANCHNAME"
-        echo "Install all modules for an instance branch."
+    if [ -z "$2" ] ; then
+        echo "usage: oetor install-all <path-to-addonsdir> [<server-params>...]
+Install all modules ins the specified modules directory.
+
+CAVEAT: if the addonsdir was added after the dababase has been initialized, the
+server might not know about the new modules yet and report that they are not found.
+A solution is to update the module list from the webclient. 
+"
         exit 0
     fi
     #--------------------------------------------------
  
     # Get parameters
-    INSTANCE="$2"
-    BRANCHNAME="$3"
-    
-    echo -e "Branch contents:"
-    ls "$OEADMIN_HOME/$INSTANCE/$BRANCHNAME"
+    shift
+    ADDONSPATH="$(cd $1 && pwd)" 
+    BRANCHPATH="`dirname $ADDONSPATH`" 
+   
+    echo -e "Contents for $ADDONSPATH:"
+    ls "$ADDONSPATH"
     
     # Init modules
-    echo -e "\nInstalling branch modules ..."
-    MODULES="`ls -d1 $OEADMIN_HOME/$INSTANCE/$BRANCHNAME/*/ | xargs -I file basename file | tr '\n' ','`"
-    echo "Modules to install: ${MODULES%?}" # remove trailing comma
-    $0 start $INSTANCE $BRANCHNAME --init="${MODULES%?}" --stop-after-init
+    MODULES="`ls -d1 $ADDONSPATH/*/ | xargs -I file basename file | tr '\n' ','`"
+    MODULES="${MODULES%?}" # remove trailing comma
+    echo "Modules to install: $MODULES" 
+    shift
+    $BRANCHPATH/start --init="$MODULES" --stop-after-init $*
     ;;    
 
 
@@ -603,6 +606,7 @@ test)
     ;;
 
 
+# TODO: branch - add copy/branch feature (?)
 remove)
     # TODO: remove - review remove feature
     echo "Sorry, the self-destruct button is currently disabled. To go ahead run:
