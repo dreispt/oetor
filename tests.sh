@@ -33,7 +33,7 @@ echo -e "\n==== start oetortest (with extra addons) ====\n"
 /opt/oetest/oetortest/main/start 8080 --stop-after-init
 
 echo -e "\n==== DONE ====\n"
-echo -e "\nSource list:\n"
+echo -e "\nSource list at /opt/oetest/src/oetortest-dptm:\n"
 ls -l /opt/oetest/src/oetortest-dptm
 echo -e "\nInstance main list:\n"
 ls -l /opt/oetest/oetortest/main
