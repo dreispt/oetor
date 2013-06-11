@@ -28,11 +28,11 @@ The `quickstart` command provides a one line full installation of the latest sta
     /opt/openerp/v7/main/start     # Start the 'v7' server instance
 
 All needed dependencies are installed, including the PostgreSQL server.
-The `v7` instance uses the latest nightly build. 
+The installed instance, `v7`, is built using the latest nightly build. 
 
 
-Basic usage
------------
+Usage
+-----
 
 A step-by-step guide on OpenERP-inator's main features.
 These steps can be followed either you used the `quickstart` or not.
@@ -48,18 +48,28 @@ For convenience, let's position in the home directory and confirm that all syste
 
 ### Create server instances
 
-Create two server instances using nightlky build, running on ports 8070 and 8071:
+Create two server instances, one using nightly build and running on port 8070,
+and another using Launchpad sources and listening on 8071:
 
-    ./oetor get nightly-7.0                # download latest nighlty build
+    ./oetor get nightly-7.0                # download latest 7.0 nighlty build
     ./oetor create prod7 nightly-7.0 8070  # create prod7 instance on port 8070
     prod7/main/start &                     # start prod7 instance in the background
     
-    ./oetor create dev7 nightly-7.0 8071   # create dev7 instance on port 8071
-    dev7/main/start &                      # start dev7 instance in the  background
+    ./oetor get openerp-7.0                # download Launchpad 7.0 source code
+    ./oetor create dev7 openerp-7.0 8071   # create dev7 instance on port 8071
+    dev7/main/start &                      # start dev7 instance in the background
 
-    ps aux | grep openerp-server           # list running instances 
-    ./oetor version /opt/openerp/nightly-7.0  # check source code version
+    ps aux | grep openerp-server           # list running instances and ports
+
+
+### Chek versions and update sources
+
+    ./oetor version ./src/nightly-7.0      # check shared nightly version
+    ./oetor version ./prod7/main/server    # check instance source code version
     ./oetor get nightly-7.0 --update       # update nighlty build source code
+
+    ./oetor version ./src/openerp-7.0      # check shared Launchpad source version
+    ./oetor get openerp-7.0 --update       # update Launchpad source code
 
 
 ### Work on a project and test branches
@@ -67,36 +77,19 @@ Create two server instances using nightlky build, running on ports 8070 and 8071
 Create an instance for the Department Management project, including it's modules in the addons path:
 
     ### Create an instance to work on the department-mgmt project ###
-    ./oetor create deptm7 nightly-7.0      # create "dptm7"erver instance
+    ./oetor create deptm7 nightly-7.0      # create "dptm7" server instance
     bzr branch lp:department-mgmt/7.0 deptm7/main/deptm   # add the project's source
-    deptm7/main/start                      # start instance (<ctrl+c> to stop it).
+    ./deptm7/main/start                    # start instance (<ctrl+c> to stop it).
                                            # project is automatically added to the addons path
     
     ### Create a branch to work on Feature X ###
     cp dptm7/main dptm7/featX              # create a copy from the 'main' branch 
                                            # ...and you could work on it
-    deptm7/featX/start -i crm_department --test-enable --stop-after-init
-                                           # run tests on a module
-    
-    ### Install or test all modules ###
-    ./oetor init-all deptm7/featX/dpt-mgmt  # install all project modules
-    ./oetor init-all deptm7/featX/dpt-mgmt --test-enable  # test all project modules
+    deptm7/featX/start -i crm_department --test-enable --stop-after-init  # test one module
+    deptm7/featX/start -I dptm7 --test-enable --stop-after-init           # test all modules
     
     ### Remove an obsolete instance branch ###
     rm ./deptm7/featX -R && dropdb deptm7-featX
-
-
-### Use Launchpad sources
-
-Create another server instance using Launchpad sources instead, using default port 8069.
-Oetor uses lighweight checkouts to get the sources from Launchpad, but even so this might take a while.
-
-    ./oetor get-sources trunk                # download trunk sources from Launchpad
-    ./oetor create test-trunk sources-trunk  # create test-trunk instance (on port 8069)
-    ./test-trunk/main/start                  # start the server instance
-    
-    ./oetor version /opt/openerp/trunk       # check versions
-    ./oetor update /opt/openerp/trunk        # update sources
 
 
 What's in the box?
