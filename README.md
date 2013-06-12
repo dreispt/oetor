@@ -6,6 +6,19 @@ OpenERP-inator
 OpenERP-inator is an utility script to manage a server with multiple OpenERP server instances and variants.
 The motivation behind `oetor` was to make it easy to branch, develop and test OpenERP branches, and avoid the chaos that quickly piles up when working on multiple projects.
 
+Features:
+
+ - One line OpenERP server full installation, through the 'quickstart' command.
+ - Simple download of OpenERP sources, either from nightly builds or Launchpad (official and OCB branches).
+ - Check source code versions and update to latest version.
+ - Create and organize multiple server instances, running in isolated environments.
+ - Addons path automatically generated: just add a new directory and it will be added on next start.
+ - Create server instance "branches" - modified versions for development and tests.
+ - Run automatic tests for all modules in a specific directory.
+ - List running instances and know their listening port just by using the 'ps' command.
+ - Support for multiple instance homes (default is /opt/openerp).
+
+
 
 Installation
 ------------
@@ -24,8 +37,10 @@ Quickstart full installation
 
 The `quickstart` command provides a one line full installation of the latest stable version of OpenERP:
 
+```bash
     /opt/openerp/oetor quickstart  # OpenERP dependencies and server isntallation 
     /opt/openerp/v7/main/start     # Start the 'v7' server instance
+```
 
 All needed dependencies are installed, including the PostgreSQL server.
 The installed instance, `v7`, is built using the latest nightly build. 
@@ -40,10 +55,12 @@ These steps can be followed either you used the `quickstart` or not.
 
 ### Preparation
  
-For convenience, let's position in the home directory and confirm that all system dependecies are installed:
+For convenience, let's position in the home directory and confirm that all system dependencies are installed.
 
+```bash
     cd /opt/openerp           # position at oetor home
     ./oetor get-dependencies  # install missing system dependencies
+```
 
 
 ### Create server instances
@@ -51,45 +68,45 @@ For convenience, let's position in the home directory and confirm that all syste
 Create two server instances, one using nightly build and running on port 8070,
 and another using Launchpad sources and listening on 8071:
 
+```bash
     ./oetor get nightly-7.0                # download latest 7.0 nighlty build
     ./oetor create prod7 nightly-7.0 8070  # create prod7 instance on port 8070
-    prod7/main/start &                     # start prod7 instance in the background
+    ./prod7/main/start &                   # start prod7 instance in the background
     
     ./oetor get openerp-7.0                # download Launchpad 7.0 source code
-    ./oetor create dev7 openerp-7.0 8071   # create dev7 instance on port 8071
-    dev7/main/start &                      # start dev7 instance in the background
+    ./oetor create test7 openerp-7.0 8071  # create test7 instance on port 8071
+    ./test7/main/start &                   # start test7 instance in the background
 
-    ps aux | grep openerp-server           # list running instances and ports
+    ps aux | grep openerp                  # list running instances and listening ports
+```
 
 
 ### Chek versions and update sources
 
-    ./oetor version ./src/nightly-7.0      # check shared nightly version
-    ./oetor version ./prod7/main/server    # check instance source code version
-    ./oetor get nightly-7.0 --update       # update nighlty build source code
+```bash
+    ./oetor version ./src/nightly-7.0      # version of a shared source
+    ./oetor version ./test7/main/server    # version of an instance source code
 
-    ./oetor version ./src/openerp-7.0      # check shared Launchpad source version
-    ./oetor get openerp-7.0 --update       # update Launchpad source code
+    ./oetor get openerp-7.0 --update       # update source code from Launchpad
+    ./oetor get nightly-7.0 --update       # update source code from nightly builds
+```
 
 
 ### Work on a project and test branches
 
 Create an instance for the Department Management project, including it's modules in the addons path:
 
-    ### Create an instance to work on the department-mgmt project ###
-    ./oetor create deptm7 nightly-7.0      # create "dptm7" server instance
-    bzr branch lp:department-mgmt/7.0 deptm7/main/deptm   # add the project's source
-    ./deptm7/main/start                    # start instance (<ctrl+c> to stop it).
-                                           # project is automatically added to the addons path
+```bash
+    ./oetor create dev7 nightly-7.0                                       # create "dev7" server instance 
+    bzr branch lp:department-mgmt/7.0 ./dev7/main/deptm                   # add specific code
+    ./dev7/main/start --stop-sfter-init                                   # new code branch automatically added to addons
     
-    ### Create a branch to work on Feature X ###
-    cp dptm7/main dptm7/featX              # create a copy from the 'main' branch 
-                                           # ...and you could work on it
-    deptm7/featX/start -i crm_department --test-enable --stop-after-init  # test one module
-    deptm7/featX/start -I dptm7 --test-enable --stop-after-init           # test all modules
+    cp ./dev7/main ./dptm7/featX                                          # create "featX" work copy from branch "main"
+    ./dev7/featX/start -i crm_department --test-enable --stop-after-init  # test one module
+    ./dev7/featX/start -I dptm7 --test-enable --stop-after-init           # test all modules
     
-    ### Remove an obsolete instance branch ###
-    rm ./deptm7/featX -R && dropdb deptm7-featX
+    rm ./deptm7/featX -R && dropdb deptm7-featX                           # Remove an obsolete instance branch
+```
 
 
 What's in the box?
@@ -97,69 +114,70 @@ What's in the box?
 
 Here is how source code directories and server instances are organized:
 
-                                   ###$ ./install.sh
+
         /opt/openerp               # HOME directory
-          |- oetor                 # oetor script
-          |- /env                  # generic virtualenv (optional)
-          |- /src                  # shared SOURCE REPOSITORY
-          |    |- /nightly-7.0       # a SOURCE DIR, from nightly builds
-          |    |    |- /server
-          |    |                     ###$ `oetor setup sources 7.0`
-          |    |- /sources-7.0       # a source dir (Launchpad checkout)
-          |    |    |- /server       #    (/repos contains addons and web)
-          |    |    |- /addons
-          |    |    |- /web
-          |    |                     ###$ `oetor setup sources trunk`
-          |    |- /sources-trunk     # ...another version source dir
-          |    |    |- ...
-          |    ...                   # ...add other shared sources as needed
+          +- oetor                   # oetor script
+          +- /env                    # shared virtualenv (optional)
           |
-          |                          ###$ ./oetor create server1 sources-7.0 
-          |- /server1                # an OpenERP server instance
-          |    |- openerp-server.conf 
-          |    |- /main
-          |    |    |- start         # script to start this server
-          |    |    |- /env          # python virtualenv used (symlinked, optional)
-          |    |    |- /server       # server sources: symlinked to dir in /opt/openerp/src
-          |    |    | 
-          |    |    |- /addons       # ... as many module directories as needed
-          |    |    |- /web
-          |    |    |- /projx
-          |    |    ... 
+          +- /src                  # shared source repository
           |    |
-          |    |- /branchz           # instance source code (version z)
-          |    |    |- start         
-          |    |    |- /env          
-          |    |    |- /server       
-          |    |    | 
-          |    |    |- /addons 
-          |    |    |- /web
-          |    |    |- /projx-z       # trying projx version z
-          |    |    ... 
+          |    +- /nightly-7.0       # a nightly build source directory
+          |    |    +- /server
           |    |
-          |    ...                 # ...add as many branches as needed
+          |    +- /openerp-7.0       # a Launchpad official source directory
+          |    |    +- /server
+          |    |    +- /addons
+          |    |    +- /web
+          |    |
+          |    +- /openerp-trunk     # a Launchpad trunk official source directory
+          |    |    +- ...           # ... module directories
+          |    ...                 # ... more shared sources
           |
-          ...                      # ...create as many instances as you need
-                                   # for help run:  `oetor create --help`
+          |
+          +- /server1              # an OpenERP server instance
+          |    |
+          |    +- /main              # the main branch
+          |    |    +- start.sh        # server start script
+          |    |    +- /env            # python virtualenv to use (symlinked, optional)
+          |    |    +- /server         # server source code (symlinked to dir in <home>/src)
+          |    |    +- /addons         # other module directories ...
+          |    |    +- /web
+          |    |    +- /projx          # an additional modules directory
+          |    |
+          |    +- /branchA           # an instance server branch
+          |    |    +- start.sh
+          |    |    +- /env      
+          |    |    +- /server       
+          |    |    +- /addons 
+          |    |    +- /web
+          |    |    +- /projx-z        # working with version z of the projx modules
+          |    |    ...                # ... more module directories
+          |    ...                   # ... more server branches
+          ...                      # ... more server instances
 
 
-Development guidelines
-----------------------
+Development guidelines and roadmap
+----------------------------------
 
-Main features intended:
+Planned features:
 
- - [X] Easy full installation command, to get you an up an running instance in a blink.
- - [X] Download sources from Launchpad or nightly builds.
- - [X] Verify Source code version/revision numbers and retrieve updates.
- - [X] Create new server instances.
- - [X] Run tests for a server instance or modified version of it.
- - [X] Add a modules directory to an instance by simply copying it into a directory.
- - [X]  List running instances with info on the xmlrpc ports used.
+* Producion environments support:
+  - Register in init.d for autostart on boot
+  - Database backup and restore
+* Support for other VCS
+  - git
+  - hg
 
-Directivesi for design and code:
 
-* Usable: the UI should be simple and intuitive.
+Other ideas that could go into the roadmap:
+
+* Support for other Unix OS, such as CentOS
+
+
+Project directives to keep in mind:
+
+* Usable: the UI should be simple and intuitive. Write docs first, code later.
 * Simple: commands should wrap annoying tasks, and no more than that.
-* Safe: repeating or misusing commands must de safe - no data is detroyed.
+* Safe: repeating or misusing commands must de safe - no data is destroyed.
 * Readable: reding the script code should allow to quickly understand what a command will do.
 

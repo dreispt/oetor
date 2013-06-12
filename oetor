@@ -33,21 +33,27 @@ creating an army of OpenERP server instances in your server.</fluff>
 
 For an easy and quick start use:              ./oetor quickstart
 To get more help on a specific command type:  ./oetor <command> --help
-For the latest code and documentation see https://github.com/dreispt/oetor
+For the latest code and documentation see:    https://github.com/dreispt/oetor
  
-Commands available:
 
-  quickstart        Automatic full installation and create an initial OpenERP instance (needs sudo).
-  install           Create directory structure and db role for current user (may need sudo).
-  get-dependencies  Install system dependencies and PostgreSQL db server (needs sudo).
-  fake-smtp         Launch a debug SMTP server printing to stdout (needs sudo).
+  Setup related commands:
 
-  get               Retrieve predefined source code sets into shared repository.
-  get-src           Retrieve custom defined source code into shared repository.
-  update            Update sources with most recent versions.
-  version           Display sources versions or revision numbers.
-  create            Create an OpenERP instance.
-  init-all          Install all modules in a module directory.
+    quickstart        Automatic full installation and create an initial OpenERP instance (needs sudo).
+    install           Create directory structure and db role for current user (may need sudo).
+    get-dependencies  Install system dependencies and PostgreSQL db server (needs sudo).
+    fake-smtp         Launch a debug SMTP server printing to stdout (needs sudo).
+
+  Instance management commands:
+
+    get               Download or update predefined source code sets into the shared repository.
+    version           Check versions of source code in shared directory or in an instance.
+    create            Create an OpenERP instance.
+
+  Other commands (advanced usage):
+
+    get-src           Retrieve custom defined source code into shared repository (used by 'get').
+    update            Update sources under a known VCS to latest revision (used by 'get').
+
 
 An OpenERP instance is a directory inside oetor's home directory. 
 It contains a 'main' subdirectory containing the sources used by it:
@@ -60,13 +66,16 @@ This can be used to set server options such as '--xmlrpc-port=XXXX' or '--debug'
 The addons path used is automatically calculated by the start script. 
 Copying a directory with modules into the subdirectory is all that is needed
 to have it added to the server's addons path.
+Refer to the 'create' command help for more details.
  
-Useful common commands:
-  Branch        cp ./<instance>/main ./<instance>/<branch>
-  Remove        rm ./<instance>/<branch> -R && dropdb <instance>-<branch>
-  Run tests     ./<instance>/<branch>/start --test-enable --stop-after-init
-  List running  ps aux | grep "/openerp-server"
-  List dbs      psql -l
+
+Other useful commands are:
+
+  Create a branch:    cp ./<instance>/main ./<instance>/<branch>
+  Remove a branch:    rm ./<instance>/<branch> -R && dropdb <instance>-<branch>
+  Run tests:          ./<instance>/<branch>/start --init=<modules> --test-enable --stop-after-init
+  Running servers:    ps aux | grep "/openerp-server"
+  List databases:     psql -l
 "
     ;;
 
@@ -226,9 +235,8 @@ To force it to be updated, use the --update option.
 
     # Get parameters and verify directory does not exist
     shift 1; SRCNAME="$1"
-    shift 1; GETMETHOD="$1"
     shift 1; SRCUPDATE="$1"
-    SRCREPO="${SRCNAME%-*}"     # "my-project-7.0" -> "my-project")
+    SRCREPO="${SRCNAME%-*}"      # "my-project-7.0" -> "my-project")
     SRCVERSION="${SRCNAME##*-}"  # "my-project-7.0" -> "7.0"
     if [ -z "$SRCVERSION" ] ; then
         echo "No source version detected."
@@ -242,7 +250,7 @@ To force it to be updated, use the --update option.
                 http://nightly.openerp.com/$SRCVERSION/nightly/src/openerp-$SRCVERSION-latest.tar.gz server
         ;;
                 
-        openerp,sources)
+        openerp)
             $0 --at $OEADMIN_HOME get-src bzr $SRCUPDATE $SRCNAME \
                 https://launchpad.net/~openerp/openobject-server/$SRCVERSION server \
                 https://launchpad.net/~openerp/openobject-addons/$SRCVERSION addons \
@@ -285,22 +293,29 @@ with the downloaded version.
         exit 0
     fi
 
+    # Check it's a proper home with a src directory
+    if [ ! -d "$OEADMIN_HOME/src" ] ; then
+        echo "The directory $OEADMIN_HOME is not a proper OpenERP-inator home."
+        exit 1
+   fi
+
     # Get parameters and verify directory does not exist
     shift 1; SRCMETHOD="$1"
     if [ "$2" = "--update" ] ; then
         shift 1; SRCUPDATE="$1"
-        if [ ! "$SRCMETHOD" = "tgz" ] ; then
-            echo "The --update option is only valid for the tgz method."
-            echo " Use the 'update' command instead."
-            exit 1 
-        fi
     else
         SRCUPDATE=""
     fi
     shift 1; SRCNAME="$1"
+    SRCDIR="$OEADMIN_HOME/src/$SRCNAME"
+
+    # Special case: update versioned source (exits early)
+    if [ ! -z "$SRCUPDATE" ] && [ ! "$SRCMETHOD" = "tgz" ] ; then
+        $0 --at $OEADMIN_HOME update $SRCDIR
+        exit 0
+    fi
 
     # General case: install the provided NAME URL list of sources
-    SRCDIR="$OEADMIN_HOME/src/$SRCNAME"
     mkdir -p "$SRCDIR"
     shift 1
 
@@ -313,8 +328,8 @@ with the downloaded version.
             case "$SRCMETHOD" in
 
                 bzr)
-                    if [ -d "$SRCDIR/$NAME" ] ; then
-                       echo "$SRCDIR/$NAME already exists: skipping ..."
+                    if [ -d "$SRCDIR/$SRCNAME" ] ; then
+                        echo "Directory $SRCDIR/$SRCNAME already exists, skipping ..."
                     else 
                         echo -e "${color}Building '$SRCDIR/$NAME' with checkout from $URL ...${endColor}"
                         rm -rf $SRCDIR/~tmp
@@ -332,7 +347,7 @@ with the downloaded version.
                         exit 1
                     else
                         # Extract file to temporary directory
-                        echo "Extracting downlaod to $SRCDIR/$NAME ..."
+                        echo "Extracting download to $SRCDIR/$NAME ..."
                         rm -rf $SRCDIR/~tmp
                         mkdir -p $SRCDIR/~tmp
                         tar xf $SRCDIR/$NAME.tar.gz --directory=$SRCDIR/~tmp
@@ -372,7 +387,7 @@ update)
                   echo -e "Updating $DIRNAME..."
                   bzr update "$DIRNAME"
                else
-                  echo -e "(skipping $DIRNAME)"
+                  echo -e "($DIRNAME not under version control: skipping)"
                fi 
            done
         fi
@@ -397,11 +412,11 @@ version)
         else
             echo -e "Source revision numbers for $REPODIR:"
             for DIRNAME in `ls -d "$REPODIR"/*/` ; do
+                printf "%-20s" "`basename "$DIRNAME"`"
                 if [ -f "$DIRNAME/PKG-INFO" ] ; then
                     # nightly build
                     grep "^Version" "$DIRNAME/PKG-INFO"
                 else
-                    echo -en "`basename "$DIRNAME"`\t"
                     bzr revno -q "$DIRNAME"
                 fi
             done
@@ -552,16 +567,16 @@ ADDONSPATH=\"\`ls -d1 \$INSTANCEPATH/*/ | grep -v '/server/$' | grep -v '/env/$'
 # Process parameters
 OEPORT="$PORT" ; [ ! -z \$1 ] && [[ ! \$1 == -* ]] && OEPORT=\$1 && shift 1 
 MODULES=""
-if [ \"$1\" = \"-I\" ] ; then 
-    MODULES=\"`ls -d1 \$INSTANCEPATH/\$2/*/ | xargs -I file basename file | tr '\n' ','`\"
-    MODULES=\"-I \${MODULES%?}\" # remove trailing comma
+if [ \"\$1\" = \"-I\" ] ; then 
+    MODULES=\"\`ls -d1 \$INSTANCEPATH/\$2/*/ | xargs -I file basename file | tr '\n' ','\`\"
+    MODULES=\"--init=\${MODULES%?}\" # remove trailing comma
     shift 2
 fi
 # Prepare server database and python environment
 sudo -u "\$INSTANCENAME" createdb \"\$DBNAME\" 2>/dev/null || echo \"Created database \$DBNAME\"
 [ -d \$INSTANCEPATH/env/bin ] && source \$INSTANCEPATH/env/bin/activate
 # Start server
-sudo -u "\$INSTANCENAME" \$SERVERPATH --xmlrpc-port=\"\$OEPORT\" -d \"\$DBNAME\" --addons-path=\"\$ADDONSPATH\" $MODULES $* \$*
+sudo -u "\$INSTANCENAME" \$SERVERPATH --xmlrpc-port=\"\$OEPORT\" -d \"\$DBNAME\" --addons-path=\"\$ADDONSPATH\" \$MODULES $* \$*
 " > "$OE_DIR/$BRANCHNAME/start"
         chmod ug+x "$OE_DIR/$BRANCHNAME/start"
         ### --config=\"\$INSTANCEPATH\"/../openerp-server.conf
