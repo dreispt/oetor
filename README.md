@@ -9,16 +9,15 @@ The motivation behind `oetor` was to make it easy to branch, develop and test Op
 Features:
 
  - `quickstart` command for a one line full installation.
- - `get`command to simplify the download of OpenERP sources, either from nightly builds or Launchpad (official and OCB branches).
+ - `get`command to simplify the download of OpenERP sources, from nightly builds or Launchpad (official and OCB).
  - `version` command to view code versions, either from shared sources or from created instances.
- - `get --update`option to update the sources to the latest version, wother form VCS or from nightly builds.
- - `create` command to add multiple server instances, in a n organized way and running in isolated environments.
- - `start` server script handling addons path automatic generation: just add a new directory and it will be added on next start.
- - Server instance "branches" - modified versions for development and tests, just by using the systme's `cp` command.
+ - `get --update`option to update the sources to the latest version, either from VCS or nightly builds.
+ - `create` command to add multiple server instances, in an organized way and running in isolated environments.
+ - `start` server script handles automatic addons path: add a new directory and it will be included on next start.
  - `start -I` option to run automatic tests for all modules in a specified directory.
- - Know the running instances list and their listening port with the system's `ps` command.
- - Support for multiple instance homes (default is `/opt/openerp`).
-
+ - the `cp` system command is used to create "branches" - modified versions for development and tests.
+ - the `ps` system command will list running servers and their listening port.
+ - multiple instance homes are supported (default is `/opt/openerp`).
 
 
 Installation
