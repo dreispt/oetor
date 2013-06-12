@@ -53,7 +53,7 @@ A step-by-step guide on OpenERP-inator's main features.
 These steps can be followed either you used the `quickstart` or not.
 
 
-### Preparation
+### Getting prepared
  
 For convenience, let's position in the home directory and confirm that all system dependencies are installed.
 
@@ -81,7 +81,7 @@ and another using Launchpad sources and listening on 8071:
 ```
 
 
-### Chek versions and update sources
+### Check versions and update sources
 
 ```bash
     ./oetor version ./src/nightly-7.0      # version of a shared source
@@ -160,7 +160,7 @@ Development guidelines and roadmap
 ----------------------------------
 
 Planned features:
-* Producion environments support:
+* Support for producion environments:
   - Register in init.d for autostart on boot
   - Database backup and restore
 * Support for other VCS
