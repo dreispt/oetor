@@ -8,16 +8,16 @@ The motivation behind `oetor` was to make it easy to branch, develop and test Op
 
 Features:
 
- - `quickstart` command for a one line full installation.
- - `get`command to simplify the download of OpenERP sources, from nightly builds or Launchpad (official and OCB).
- - `version` command to view code versions, either from shared sources or from created instances.
- - `get --update`option to update the sources to the latest version, either from VCS or nightly builds.
- - `create` command to add multiple server instances, in an organized way and running in isolated environments.
- - `start` server script handles automatic addons path: add a new directory and it will be included on next start.
- - `start -I` option to run automatic tests for all modules in a specified directory.
- - the `cp` system command is used to create "branches" - modified versions for development and tests.
- - the `ps` system command will list running servers and their listening port.
- - multiple instance homes are supported (default is `/opt/openerp`).
+ - **One line install**: the `quickstart` command provides a one line full installation.
+ - **Get source code**: the `get` command makes it simple to get OpenERP sources from nightly builds, Launchpad official branches or OCB community branches.
+ - **Update source code**: the `get --update` option updates sources to the latest version, either from VCS or nightly builds.
+ - **View versions**: the `version` command shows source code versions, either from shared sources or from created instances.
+ - **Create server instances**: the `create` command can add multiple server instances, in an organized way and running in isolated environments.
+ - **Automatic addons paths**: the `start` server script calculates the addons path: add a new directory and it will be included on next start.
+ - **Test all modules**: the `start -I` option installs and runs tests for all modules in a specified directory.
+ - **Instance branches**: "branches" can be created using the `cp` system command: modified versions for development and tests.
+ - **List servers and ports**: the `ps` system command will list running servers and their listening port.
+ - **Multiple homes**: the default home directory is `/opt/openerp`, but other locations are possible and supported.
 
 
 Installation
