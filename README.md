@@ -8,15 +8,16 @@ The motivation behind `oetor` was to make it easy to branch, develop and test Op
 
 Features:
 
- - One line OpenERP server full installation, through the 'quickstart' command.
- - Simple download of OpenERP sources, either from nightly builds or Launchpad (official and OCB branches).
- - Check source code versions and update to latest version.
- - Create and organize multiple server instances, running in isolated environments.
- - Addons path automatically generated: just add a new directory and it will be added on next start.
- - Create server instance "branches" - modified versions for development and tests.
- - Run automatic tests for all modules in a specific directory.
- - List running instances and know their listening port just by using the 'ps' command.
- - Support for multiple instance homes (default is /opt/openerp).
+ - `quickstart` command for a one line full installation.
+ - `get`command to simplify the download of OpenERP sources, either from nightly builds or Launchpad (official and OCB branches).
+ - `version` command to view code versions, either from shared sources or from created instances.
+ - `get --update`option to update the sources to the latest version, wother form VCS or from nightly builds.
+ - `create` command to add multiple server instances, in a n organized way and running in isolated environments.
+ - `start` server script handling addons path automatic generation: just add a new directory and it will be added on next start.
+ - Server instance "branches" - modified versions for development and tests, just by using the systme's `cp` command.
+ - `start -I` option to run automatic tests for all modules in a specified directory.
+ - Know the running instances list and their listening port with the system's `ps` command.
+ - Support for multiple instance homes (default is `/opt/openerp`).
 
 
 
@@ -97,15 +98,15 @@ and another using Launchpad sources and listening on 8071:
 Create an instance for the Department Management project, including it's modules in the addons path:
 
 ```bash
-    ./oetor create dev7 nightly-7.0                                       # create "dev7" server instance 
-    bzr branch lp:department-mgmt/7.0 ./dev7/main/deptm                   # add specific code
-    ./dev7/main/start --stop-sfter-init                                   # new code branch automatically added to addons
+    ./oetor create dev7 nightly-7.0                                      # create "dev7" server instance 
+    bzr branch lp:department-mgmt/7.0 ./dev7/main/deptm                  # add specific code
+    ./dev7/main/start --stop-sfter-init                                  # new code branch automatically added to addons
     
-    cp ./dev7/main ./dptm7/featX                                          # create "featX" work copy from branch "main"
-    ./dev7/featX/start -i crm_department --test-enable --stop-after-init  # test one module
-    ./dev7/featX/start -I dptm7 --test-enable --stop-after-init           # test all modules
+    cp ./dev7/main ./dev7/featX                                          # create "featX" work copy from branch "main"
+    ./dev7/featX/start -i crm_department --test-enable --stop-after-init # test one module
+    ./dev7/featX/start -I dptm --test-enable --stop-after-init           # test all modules
     
-    rm ./deptm7/featX -R && dropdb deptm7-featX                           # Remove an obsolete instance branch
+    rm ./dev7/featX -R && dropdb dev7-featX                              # Remove an obsolete instance branch
 ```
 
 
@@ -160,7 +161,6 @@ Development guidelines and roadmap
 ----------------------------------
 
 Planned features:
-
 * Producion environments support:
   - Register in init.d for autostart on boot
   - Database backup and restore
@@ -170,12 +170,10 @@ Planned features:
 
 
 Other ideas that could go into the roadmap:
-
 * Support for other Unix OS, such as CentOS
 
 
 Project directives to keep in mind:
-
 * Usable: the UI should be simple and intuitive. Write docs first, code later.
 * Simple: commands should wrap annoying tasks, and no more than that.
 * Safe: repeating or misusing commands must de safe - no data is destroyed.
