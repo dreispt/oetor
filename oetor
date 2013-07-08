@@ -332,8 +332,8 @@ with the downloaded version.
                     else 
                         echo -e "${color}Building '$SRCDIR/$NAME' with checkout from $URL ...${endColor}"
                         rm -rf $SRCDIR/~tmp
-                        bzr checkout --lightweight $URL $SRCDIR/~tmp
-                        mv $SRCDIR/~tmp $SRCDIR/$NAME
+                        bzr checkout --lightweight $URL $SRCDIR/~tmp \
+                            && mv $SRCDIR/~tmp $SRCDIR/$NAME
                     fi 
                     ;;
 
