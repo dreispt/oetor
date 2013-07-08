@@ -308,7 +308,7 @@ with the downloaded version.
     shift 1; SRCNAME="$1"
     SRCDIR="$OEADMIN_HOME/src/$SRCNAME"
 
-    # Special case: update versioned source (exits early)
+    # Special case: update versioned sources and exit early
     if [ ! -z "$SRCUPDATE" ] && [ ! "$SRCMETHOD" = "tgz" ] ; then
         $0 --at $OEADMIN_HOME update $SRCDIR
         exit 0
@@ -327,8 +327,8 @@ with the downloaded version.
             case "$SRCMETHOD" in
 
                 bzr)
-                    if [ -d "$SRCDIR/$SRCNAME" ] ; then
-                        echo "Directory $SRCDIR/$SRCNAME already exists, skipping ..."
+                    if [ -d "$SRCDIR/$NAME" ] ; then
+                        echo "Directory $SRCDIR/$NAME already exists, skipping ..."
                     else 
                         echo -e "${color}Building '$SRCDIR/$NAME' with checkout from $URL ...${endColor}"
                         rm -rf $SRCDIR/~tmp
