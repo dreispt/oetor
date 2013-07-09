@@ -4,21 +4,25 @@
 # Author: Daniel Reis, 2013
 ################################################################################
 
-#fixed parameters:
+#fixed parameters: current release version and current user
 OEADMIN_VERSION="0.5"
 OEADMIN_USER="`whoami`"
+color='\e[1;34m'
+endColor='\e[0m'
 
-# --at command allows to force a the home directory
-# WARNING: for internal use; not part of the public interface
-OEADMIN_HOME="$(cd `dirname $0` && pwd)"
+# Detect homedir; defaults to /opt/openerp
+# (installed homes always have a 'src' subdirectory)
+if [ -d "`dirname $0`/src" ] ; then
+    OEADMIN_HOME="$(cd `dirname $0` && pwd)"
+else
+    OEADMIN_HOME="/opt/openerp"
+fi
+# '--at' command allows to force the home directory to use
+# (for internal use; not meant part of the public interface)
 if [ "$1" = "--at" ] ; then
     OEADMIN_HOME="`echo $2 | sed 's/\/$//'`"  # remove trailing slash
     shift 2
 fi 
-
-
-color='\e[1;34m'
-endColor='\e[0m'
 
 
 case "$1" in
