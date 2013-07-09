@@ -26,9 +26,9 @@ Installation
 To install in an Ubuntu system:
 
 ```bash
-wget https://raw.github.com/dreispt/master/oetor  # download oetor script
-bash oetor install                                # run install command
-rm oetor                                          # cleanup
+wget https://raw.github.com/dreispt/oetor/master/oetor  # download oetor script
+bash oetor install                                      # run install command
+rm oetor                                                # cleanup
 ```
 
 
