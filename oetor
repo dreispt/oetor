@@ -27,7 +27,10 @@ fi
 
 case "$1" in
 
+#--------------------------------------------------
 --help)
+#--------------------------------------------------
+
     echo "usage: oetor <command> [<args>]
 OpenERP-inator, a tool to manage and test multiple OpenERP server instances.
 
@@ -83,28 +86,28 @@ Other useful commands are:
     ;;
 
 
+#--------------------------------------------------
 install)
-    #--------------------------------------------------
+#--------------------------------------------------
     # Setup directories
     #  - repo stored in $OEADMIN_HOME (/opt/openerp)
-    #  - reexecution safe (nothing is done)
-    #  - repo is a git clone: `git pull` will get it's latest version
-    # NOTE: administrator pivilege needed
+    #  - reexecution safe (nothing is overwritten)
+    #  - NOTE: administrator privileges needed
     #--------------------------------------------------
 
+    #== Usage ==
     if [ "$2" = "--help" ] ; then
         echo "Usage: oetor install [--virtualenv] [directory]
-Create directory structure and db role for current user (may need sudo privilege).
-The install destinations is /opt/openerp, unless a specific directory is indicatted.
+Create a home directory structure, usergroup. Alse creates a db role for the current user.
+The default install destination is /opt/openerp, unless a specific directory is indicated.
+Will ask for sudo privilege. Can be used to create several coexisting homes.
 
-The currently running oetor script will be copied to the install directory, and 
-overwritten in case it already exists. This can be used to update the script in 
-the install directory, by repeating the install command on a oetor's newer version.
-"
-        exit 0
+The executing oetor script will be copied to the install directory and replace any
+existing copy, so that it can be used to update the installed oetor script.
+"; exit 0
     fi
 
-    # Parsing parameters
+    #== Parse command parameters ==
     shift 1; OE_DIR="$1"
     if [ "$1" = "--virtualenv" ] ; then
         OE_VIRTUALENV="yes"
@@ -118,17 +121,22 @@ the install directory, by repeating the install command on a oetor's newer versi
     OE_DIR="`echo $OE_DIR | sed 's/\/$//'`"  # remove trailing slash
     echo "Will install into $OE_DIR for user $OEADMIN_USER"
 
-    # Create user, group and postgres role
+    #== Create linux user and group (needs sudo) ==
+    # Create group for this home, having it's dirname (ex: openerp)
+    # Current user (whoami) is added to that group
     echo -e "* Creating system and database users (sudo needed)..."
     OEADMIN_NAME="`basename $OE_DIR`"
     sudo groupadd "$OEADMIN_NAME" 2>/dev/null \
       &&  echo -e "* Created user group  $OEADMIN_NAME"
     sudo usermod -a -G "$OEADMIN_NAME" "$OEADMIN_USER" 2>/dev/null
+
+    #== Create PostgresSQL generic role for current user (needs sudo) ==
     sudo su -c "createuser --createdb --createrole --no-superuser $OEADMIN_USER" postgres 2>/dev/null \
       && echo "* Created database role $OEADMIN_USER"
 
-    # Add installing user to sudoers, to impoersonate group users without passord
-    # This allows start scripts can run isolated servers
+    #== Add installing user to sudoers (needs sudo) ==
+    # Needed to allow impersonating other users of the group without requesting password,
+    # so that 'start' scripts can run each server instance in an isolated security context
     if [ -z "`sudo grep -w "^$OEADMIN_USER" /etc/sudoers`" ] ; then
         echo "* Adding $OEADMIN_USER to sudoers..."
         sudo cp /etc/sudoers /etc/sudoers.oetor
@@ -138,24 +146,25 @@ the install directory, by repeating the install command on a oetor's newer versi
         sudo visudo -c -s -q -f /etc/sudoers.oetor && sudo cp /etc/sudoers.oetor /etc/sudoers
     fi
 
-    # Create log directories (not used for now)
+    #== Create system log directory (not used for now) ==
     #if [ ! -d /var/log$OE_DIR ] ; then
     #    echo -e "* Creating base log directory /var/log$OE_DIR ..."
     #    sudo mkdir -p /var/log$OE_DIR
     #    sudo chown $OEADMIN_USER:$OEADMIN_USER /var/log$OE_DIR
     #fi
 
-    # Create home directory
+    #== Create the Home directory ==
     [ ! -d $OE_DIR ] &&  echo -e "* Creating oetor home $OE_DIR for user $OEADMIN_USER ..."
     sudo mkdir -p $OE_DIR/src
     sudo chown -hR $OEADMIN_USER:$OEADMIN_NAME $OE_DIR
 
-    # Install or update home's oetor script
+    #== Install (or replace) oetor script ==
     echo -e "* Installing this oetor script to directory $OE_DIR ..."
     cp "$0" $OE_DIR/oetor
     chmod +x $OE_DIR/oetor
     sudo chown $OEADMIN_USER:$OEADMIN_NAME $OE_DIR/oetor
 
+    #== Create shared virtualenv, with required python packages ==
     # TODO(experimental): Setup shared virtualenv
     if [ ! -z "$OE_VIRTUALENV" ] ; then
         # setup virtualenv
@@ -168,7 +177,7 @@ the install directory, by repeating the install command on a oetor's newer versi
         easy_install -q pyparsing==1.5.7 
         easy_install -q pydot
 
-        # pychart not on pypi
+        # pychart is not on pypi
         pip install -q http://download.gna.org/pychart/PyChart-1.39.tar.gz
 
         # regular pypi packages
@@ -176,7 +185,7 @@ the install directory, by repeating the install command on a oetor's newer versi
             python-ldap pyxslt lxml mako mock python-openid PIL psycopg2 psutil babel \
             reportlab simplejson pytz unittest2 vatnumber \
             vobject pywebdav werkzeug xlwt pyyaml 
-        # pip install zsi  # fails... 
+        # pip install zsi  # fails!... 
     fi
     ;;
 
