@@ -637,7 +637,9 @@ To use it browse: http://`hostname`:$PORT
    ;;
 
 
+#--------------------------------------------------
 quickstart)
+#--------------------------------------------------
     if [ "$2" = "--help" ] ; then
         echo "Usage: oetor quickstart <installdir>
 Installs OpenERP-inator and performs an automatic full installation of an
@@ -648,7 +650,7 @@ If no specific installation directory is provided, '/opt/openerp' will be used.
 Equivalent to:
     ./oetor install
     /opt/openerp/oetor get-dependencies
-    /opt/openerp/oetor get-nightly 7.0
+    /opt/openerp/oetor get nightly-7.0
     /opt/openerp/oetor create v7 nightly-7.0
 "
     fi
@@ -664,13 +666,16 @@ Equivalent to:
     ;;
 
 
+#--------------------------------------------------
 *)
-    if [ -z "$1" ] ; then
-        echo "usage: oetor <command> [<args>]"
-    else
+#--------------------------------------------------
+    if [ ! -z "$1" ] ; then
         echo "Not a valid command."
     fi
-    echo "Type \`oetor --help\` to show all commands available."
+    echo "usage: oetor <command> [<args>]
+Setup related commands:        install quickstart get-dependencies fake-smtp
+Instance management commands:  get version create
+Type \`oetor --help\` for more info."
     ;;
 
 
