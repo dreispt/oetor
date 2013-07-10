@@ -98,12 +98,18 @@ install)
     #== Usage ==
     if [ "$2" = "--help" ] ; then
         echo "Usage: oetor install [--virtualenv] [directory]
-Create a home directory structure, usergroup. Alse creates a db role for the current user.
-The default install destination is /opt/openerp, unless a specific directory is indicated.
-Will ask for sudo privilege. Can be used to create several coexisting homes.
+Creates a home directory structure to host OpenERP server instances.
+If no specific directory is specified, it defaults to \"/opt/openerp\".
+The current system user will be the owner of the home directory.
+Several coexisting homes are supported.
 
-The executing oetor script will be copied to the install directory and replace any
-existing copy, so that it can be used to update the installed oetor script.
+The install is re-execution safe, and will try to:
+  - create user group for the home (ex: \"openerp\" for \"/opt/openerp\")
+  - to run secure isolated instances, allow current user to impersonate any 
+    group's user without password (via /etc/sudoers)
+  - create a db role for the current user
+  - create the home directory (ex: /opt/openerp) and set it's ACLs
+  - update the home's oetor script with the currently executing copy
 "; exit 0
     fi
 
@@ -130,11 +136,7 @@ existing copy, so that it can be used to update the installed oetor script.
       &&  echo -e "* Created user group  $OEADMIN_NAME"
     sudo usermod -a -G "$OEADMIN_NAME" "$OEADMIN_USER" 2>/dev/null
 
-    #== Create PostgresSQL generic role for current user (needs sudo) ==
-    sudo su -c "createuser --createdb --createrole --no-superuser $OEADMIN_USER" postgres 2>/dev/null \
-      && echo "* Created database role $OEADMIN_USER"
-
-    #== Add installing user to sudoers (needs sudo) ==
+   #== Add installing user to sudoers (needs sudo) ==
     # Needed to allow impersonating other users of the group without requesting password,
     # so that 'start' scripts can run each server instance in an isolated security context
     if [ -z "`sudo grep -w "^$OEADMIN_USER" /etc/sudoers`" ] ; then
@@ -146,6 +148,10 @@ existing copy, so that it can be used to update the installed oetor script.
         sudo visudo -c -s -q -f /etc/sudoers.oetor && sudo cp /etc/sudoers.oetor /etc/sudoers
     fi
 
+    #== Create PostgresSQL generic role for current user (needs sudo) ==
+    sudo su -c "createuser --createdb --createrole --no-superuser $OEADMIN_USER" postgres 2>/dev/null \
+      && echo "* Created database role $OEADMIN_USER"
+ 
     #== Create system log directory (not used for now) ==
     #if [ ! -d /var/log$OE_DIR ] ; then
     #    echo -e "* Creating base log directory /var/log$OE_DIR ..."
