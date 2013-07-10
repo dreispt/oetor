@@ -110,6 +110,8 @@ The install is re-execution safe, and will try to:
   - create a db role for the current user
   - create the home directory (ex: /opt/openerp) and set it's ACLs
   - update the home's oetor script with the currently executing copy
+  - with the --virtualenv option, a shared python virtualenv will be created in 
+    subdir \"env/\", to be used by the server instances (experimental)
 "; exit 0
     fi
 
@@ -136,14 +138,16 @@ The install is re-execution safe, and will try to:
       &&  echo -e "* Created user group  $OEADMIN_NAME"
     sudo usermod -a -G "$OEADMIN_NAME" "$OEADMIN_USER" 2>/dev/null
 
-   #== Add installing user to sudoers (needs sudo) ==
+    #== Add installing user to sudoers (needs sudo) ==
     # Needed to allow impersonating other users of the group without requesting password,
     # so that 'start' scripts can run each server instance in an isolated security context
-    if [ -z "`sudo grep -w "^$OEADMIN_USER" /etc/sudoers`" ] ; then
-        echo "* Adding $OEADMIN_USER to sudoers..."
+    AddSudoer="$OEADMIN_USER  ALL=(%$OEADMIN_NAME) NOPASSWD: ALL" #note the hardtab before ALL
+    if [ -z "`sudo grep -w "$AddSudoer" /etc/sudoers`" ] ; then
+        echo "* Adding $OEADMIN_USER to sudoers for group $OEADMIN_NAME..."
         sudo cp /etc/sudoers /etc/sudoers.oetor
         sudo chown "$OEADMIN_USER" /etc/sudoers.oetor && sudo chmod u+w /etc/sudoers.oetor
-        sudo echo -e "$OEADMIN_USER\tALL=(%$OEADMIN_NAME) NOPASSWD: ALL" >> /etc/sudoers.oetor
+        #sudo echo -e "$OEADMIN_USER\tALL=(%$OEADMIN_NAME) NOPASSWD: ALL" >> /etc/sudoers.oetor
+        sudo echo "$AddSudoer" >> /etc/sudoers.oetor
         sudo chmod u-w /etc/sudoers.oetor && sudo chown root /etc/sudoers.oetor
         sudo visudo -c -s -q -f /etc/sudoers.oetor && sudo cp /etc/sudoers.oetor /etc/sudoers
     fi
@@ -449,39 +453,54 @@ fake-smtp)
     ;;
 
 
+#--------------------------------------------------
 create)
+#--------------------------------------------------
+
+    #== Help ==
     if [ "$2" = "--help" ] ; then
-        echo "Usage: oetor create <instance> <src-fullpath> [<port>] [<fixed-opts>]
+        echo "Usage: oetor create <name> <src> [<port>] [<fixed-opts>]
 Create an OpenERP instance.
-    <instance>    Identifying name for the instance
-    <src>         Directory name ('nightly-7.0') or full path ('/opt/openerp/src/nightly-7.0') 
-                  to get the instance's server and addons source code. 
-                  Use --no-src if none is to be used.
-    <port>        Optional port number for the instance, defaulting to 8069
-    <fixed-opts>  List of additional server options to include in the start script
-
-The instance contains a main/start script to startup the server:
-    ./start [<port>] [-I <dirname>] [<other-opts>]
-
 Parameters:
-    <port>        Allows to set the port the server will use.
+    <name>        Name for the instance
+    <src>         Source code for the server and addons. 
+                  Can be either a dirname (\"nightly-7.0\") 
+                  or full path (\"/opt/openerp/src/nightly-7.0\") 
+                  Use --no-src if none is to be used.
+    <port>        Optional port number for the instance. Defaults to 8069.
+    <fixed-opts>  List of additional fixed server options to include in the start script
+
+The create command will try to:
+  - create user for the instance, member of this home's group.
+  - create instance directory and set it's ACLs.
+  - in the instance's \"main/\" subdir:
+    - create symlink to home's virtualenv, if available
+    - create symlink to the sources directory 
+    - create start script and conf file.
+
+The server instance can be started running it's \"start\" script.
+This script can be edited, and will not be overwritten by a re-create.
+The start script has the following optional parameters:
+
+    <port>        Use this specific port instead.
     -I <dirname>  Initializes (-i) all modules in directory <dirname>.
                   Use with --test-enable to test all modules.
     <other-opts>  Other options to pass to the OpenERP server.
                   For example: --test-enable --stop-after-init
 ";      exit 0
     fi
+
+    #== Parse parameters ==
     # Check minimun parameters supplied
     if [ -z "$3" ] ; then
-        echo "Usage: oetor create <instance> <src-fullpath> [PORT] [FIXED_PARAMS]"
+        echo "Usage: oetor create <instance> <src-fullpath> [<port>] [<fixed-opts>]"
         exit 0
     fi
 
-    # Get version and instance name
-    shift 1
-    INSTANCE="$1"
+    # Get name for the instance
+    shift 1;  INSTANCE="$1"
 
-    # Get optional branch    
+    # Set default branch name
     BRANCHNAME="main"
 
     # Base directory
@@ -518,10 +537,11 @@ Parameters:
 
     OE_DIR="$OEADMIN_HOME/$INSTANCE"
     
-    # Create user
+    #== Create user and db role for instance ==
     echo "Creating system and database user $INSTANCE (sudo needed)"
     OE_GROUP="`basename $OEADMIN_HOME`"
-    sudo useradd -g "$OE_GROUP" -d "$OE_DIR" "$INSTANCE" #2>/dev/null
+    sudo useradd -d "$OE_DIR" "$INSTANCE" #2>/dev/null
+    sudo usermod -G "$OE_GROUP" -a "$INSTANCE" #2>/dev/null
     sudo -u $OEADMIN_USER createuser --createdb --no-createrole --no-superuser "$INSTANCE" #2>/dev/null
 
     # Create instance directory
@@ -552,6 +572,12 @@ Parameters:
                 fi
            done
         fi
+    fi
+
+    # Create convenient shortcut for main/start script
+    if [ ! -f "$OE_DIR/start" ] ; then
+        echo "\`dirname \$0\`/main/start \$*" > "$OE_DIR/start"
+        chmod ug+x "$OE_DIR/start"
     fi
 
     #--------------------------------------------------
