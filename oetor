@@ -637,6 +637,54 @@ To use it browse: http://`hostname`:$PORT
    ;;
 
 
+branch)
+    #branch [--test <module>] <instance> [url] [branchname]
+    #branch [--testall] <instance> [url] [branchname]
+
+    # Process parameters
+    shift 1 
+    OETEST=""
+    OEMODULE=""
+    if [ "$1" == "--test" ] ; then
+        OETEST="$1"
+        OEMODULE="$2"
+        shift 2
+    fi
+    if [ "$1" == "--testall" ] ; then
+        OETEST="$1"
+        shift 1
+    fi
+    OEINSTANCE="$1" ; shift 1
+    OEURL="" ; [ "$1" ] && OEURL="$1" && shift 1
+    if [ "$1" ] ; then
+        OEBRANCH="$1" ; shift 1
+    else
+        OEBRANCH="`basename $OEURL`"
+    fi
+
+    OE_ORIG="$OEADMIN_HOME"/"$OEINSTANCE"/main
+    OE_DEST="$OEADMIN_HOME"/"$OEINSTANCE"/"$OEBRANCH"
+    OE_LOG="$OEADMIN_HOME"/"$OEINSTANCE"/"$OEBRANCH"/tests.log
+
+    [ ! -d "$OE_DEST" ] && cp -r "$OE_ORIG" "$OE_DEST" 
+    [ "$OEURL" ] && bzr branch "$OEURL" "$OE_DEST"/"$OEBRANCH"
+    
+    if [ "$OETEST" ] ; then
+      case "$OETEST" in
+        --test)
+            "$OE_DEST"/start -i "$OEMODULE" --test-enable --stop-after-init | tee "$OE_LOG"
+            ;;
+        --testall)
+            "$OE_DEST"/start -I "$OEBRANCH" --test-enable --stop-after-init | tee "$OE_LOG"
+            ;;
+      esac
+      echo "==== DONE ===="
+      grep "ERROR" "$OE_LOG"
+    fi
+    ;;
+
+
+
 #--------------------------------------------------
 quickstart)
 #--------------------------------------------------
