@@ -638,6 +638,80 @@ To use it browse: http://`hostname`:$PORT
 
 
 #--------------------------------------------------
+clone)
+#--------------------------------------------------
+    # clone [--test <module>] <instance> [url] [branchname]
+    # clone [--testall] <instance> [url] [branchname]
+
+    #== Process parameters ==
+    pMODULE=""    # module to test
+    pINSTANCE=""  # instance/container 
+    pURL=""       # url to fetch source code from
+    pSOURCE="main"  # instance subdir to copy from
+    pDEST=""      # instance subdir to create or test
+
+    shift 1 
+    n=1  # positional parameter counter
+    while [ "$1" ] ; do
+        case "$1" in
+            # option parameters
+            --url=*)     pURL="${1:6}" ;;
+            --test)     pTEST="$2" ; shift ;;
+            --testall)  pTEST="ALL" ;;
+            -*)         echo "Invalid option $1." ; exit 1 ;;
+            # positional parameters
+            *)  case "$n" in
+                    1) pINSTANCE="$1" ;;
+                    # 2) pURL="$1" ;;
+                    2) pDEST="$1" ;;
+                esac
+                (( n++ ))
+        esac
+        shift
+    done
+
+    # if destination missing, get it from the url 
+    [ ! "$pDEST" ] && pDEST="`basename $pURL`"
+    # error if mandatory positional parameters are missing
+    # [ ! "$pDEST" ] && echo "ERROR: parameters missing." && exit 1
+
+    #== Create new server subdir ==
+    pathORIG="$OEADMIN_HOME"/"$pINSTANCE"/"$pSOURCE"
+    pathDEST="$OEADMIN_HOME"/"$pINSTANCE"/"$pDEST"
+    pathLOG="$OEADMIN_HOME"/"$pINSTANCE"/"$pDEST"/tests.log
+
+    # Create server copy, if it doesn't exist yet
+    [ ! -d "$pathDEST" ] \
+        && cp -r "$pathORIG" "pathDEST" 
+    # Get source code for new server
+    if [ "$pURL" ] ; then
+        rm -r "$pathDEST"/"$pDEST"
+        bzr branch "$pURL" "$pathDEST"/"$pDEST"
+    fi
+    # Run tests
+    if [ "$pTEST" ] ; then
+        if [ "$pTEST" == "ALL" ] ; then 
+            "$pathDEST"/start -I "$pDEST" --test-enable --stop-after-init | tee "$pathLOG"
+        else
+            "$pathDEST"/start -i "$pTEST" --test-enable --stop-after-init | tee "$pathLOG"
+        fi
+
+        echo "==== DONE ===="
+        grep "ERROR" "$pathLOG" --color=auto
+    fi
+    ;;
+
+
+
+#--------------------------------------------------
+drop)
+#--------------------------------------------------
+    # drop <container> <instance>
+    # drop <instance path>
+    ;;
+
+
+#--------------------------------------------------
 quickstart)
 #--------------------------------------------------
     if [ "$2" = "--help" ] ; then
