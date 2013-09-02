@@ -280,7 +280,7 @@ To force it to be updated, use the --update option.
         ;;
         
        ocb)
-            $0 --at $OEADMIN_HOME get-scr bzr $SRCUPDATE $SRCNAME \
+            $0 --at $OEADMIN_HOME get-src bzr $SRCUPDATE $SRCNAME \
                 https://launchpad.net/~ocb/ocb-server/$SRCVERSION server \
                 https://launchpad.net/~ocb/ocb-addons/$SRCVERSION addons \
                 https://launchpad.net/~ocb/ocb-web/$SRCVERSION web
